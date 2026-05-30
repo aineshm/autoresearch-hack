@@ -1,0 +1,6 @@
+commit	val_bpb	memory_gb	status	description
+abc123	1.000000	43.9	keep	baseline
+def456	0.990000	43.9	keep	increase LR to 0.04
+aaa111	1.020000	43.9	discard	switch to GeLU
+bbb222	0.000000	43.9	crash	double model width (OOM)
+ccc333	0.991000	43.9	discard	add dropout 0.1
