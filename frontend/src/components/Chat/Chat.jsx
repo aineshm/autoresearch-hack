@@ -58,6 +58,12 @@ export default function Chat({ user, onLogout }) {
     const text = input.trim();
     if (!text || sending) return;
 
+    // conversation history sent to the model (drop error notices)
+    const history = [
+      ...active.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content: text },
+    ];
+
     patchActive((c) => ({
       ...c,
       title: c.messages.length === 0 ? text.slice(0, 40) : c.title,
@@ -68,7 +74,7 @@ export default function Chat({ user, onLogout }) {
     requestAnimationFrame(autosize);
 
     try {
-      const { reply } = await api.chat(text, getToken());
+      const { reply } = await api.chat(history, getToken());
       patchActive((c) => ({ ...c, messages: [...c.messages, { role: 'assistant', content: reply }] }));
     } catch (err) {
       patchActive((c) => ({

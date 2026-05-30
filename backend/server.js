@@ -2,11 +2,27 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import OpenAI from 'openai';
 import db from './db.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
 const TOKEN_TTL = '7d';
+
+// OpenAI — powers the chat assistant. Optional: if no key is set the app
+// still runs and /api/chat returns a friendly "not configured" message.
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
+const SYSTEM_PROMPT = `You are AutoLab — an agentic ML engineer. AutoLab is an environment \
+for self-learning systems to be adapted into any domain: a user brings a fuzzy goal and a \
+dataset, and AutoLab formulates the ML problem (task, target, metric, eval harness), researches \
+the domain, runs a swarm of experiments to build and train candidate models, and delivers the \
+best model with an explanation of what mattered. Help the user go from prompt to production. \
+Be concise, technical, and concrete. When a user describes a goal, clarify the task type, the \
+data they have, and the metric that defines success.`;
 
 const app = express();
 app.use(cors());
@@ -93,18 +109,40 @@ app.get('/api/auth/me', authRequired, (req, res) => {
   return res.json({ user: publicUser(user) });
 });
 
-// Chat endpoint (auth required). Stubbed assistant — swap the `reply`
-// line for a real model call (Claude API, etc.) when ready.
-app.post('/api/chat', authRequired, (req, res) => {
-  const message = String(req.body?.message || '').trim();
-  if (!message) return res.status(400).json({ error: 'Message is required.' });
+// Chat endpoint (auth required) — powered by OpenAI.
+// Accepts either { messages: [{role, content}, ...] } (preferred, full
+// conversation) or { message: "..." } (single turn).
+app.post('/api/chat', authRequired, async (req, res) => {
+  const history = Array.isArray(req.body?.messages) ? req.body.messages : null;
+  const single = String(req.body?.message || '').trim();
 
-  const reply =
-    `Got it — you want to work on:\n\n"${message}"\n\n` +
-    `I'm the AutoLab assistant (currently a stub). Wire me up to a model in ` +
-    `backend/server.js (the /api/chat route) and I'll help take this from prompt to production.`;
+  if (!history?.length && !single) {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
 
-  return res.json({ reply });
+  if (!openai) {
+    return res.json({
+      reply:
+        'The AutoLab assistant is not configured yet. Add OPENAI_API_KEY to ' +
+        'backend/.env (see .env.example) and restart the server to enable AI responses.',
+    });
+  }
+
+  const turns = (history || [{ role: 'user', content: single }])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && m.content)
+    .map((m) => ({ role: m.role, content: String(m.content) }));
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...turns],
+    });
+    const reply = completion.choices?.[0]?.message?.content?.trim() || '(no response)';
+    return res.json({ reply });
+  } catch (err) {
+    console.error('OpenAI error:', err?.message || err);
+    return res.status(502).json({ error: 'The assistant failed to respond. Check the API key and server logs.' });
+  }
 });
 
 app.listen(PORT, () => {

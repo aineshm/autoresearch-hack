@@ -26,5 +26,5 @@ export const api = {
   signup: (payload) => request('/auth/signup', { method: 'POST', body: payload }),
   login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
-  chat: (message, token) => request('/chat', { method: 'POST', body: { message }, token }),
+  chat: (messages, token) => request('/chat', { method: 'POST', body: { messages }, token }),
 };
