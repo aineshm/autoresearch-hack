@@ -14,6 +14,12 @@ test('readL2Results parses rows and flags crash status', () => {
   assert.equal(crash.value, null);
 });
 
+test('readL2Ledger parses attempts with outcomes', () => {
+  const ledger = readL2Ledger(RUN);
+  assert.equal(ledger.attempts.length, 3);
+  assert.equal(ledger.attempts.find((a) => a.error_class === 'OOM').outcome, 'failure');
+});
+
 test('readL2Program extracts metric + direction from freeform program.md', () => {
   const p = readL2Program(RUN);
   assert.equal(p.metric, 'val_bpb');
