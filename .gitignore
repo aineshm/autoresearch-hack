@@ -1,0 +1,30 @@
+# reference mockups (not part of the app)
+mockups/
+
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+.next/
+
+# local database / data
+backend/data/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# env
+.env
+.env.*
+!.env.example
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

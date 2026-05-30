@@ -1,0 +1,7 @@
+.landing {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  background: #0a0a0a;
+}
