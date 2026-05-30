@@ -4,7 +4,7 @@ import { ProgramSchema, PassResultsSchema, RunRecordSchema, DirectiveSchema } fr
 
 // Minimal YAML front-matter parser (flat key: value only — sufficient for program.md).
 function parseFrontMatter(md) {
-  const m = md.match(/^---\n([\s\S]*?)\n---/);
+  const m = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) throw new Error('program.md is missing a --- front-matter block');
   const obj = {};
   for (const line of m[1].split('\n')) {

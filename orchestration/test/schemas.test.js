@@ -25,6 +25,10 @@ test('DirectiveSchema requires a known verdict', () => {
   assert.throws(() => DirectiveSchema.parse({ pass: 1, verdict: 'BOGUS', checks: {}, changes: [], rationale: '', next_hypotheses: [] }));
 });
 
+test('PassResultsSchema rejects a pass with no candidates', () => {
+  assert.throws(() => PassResultsSchema.parse({ pass: 1, candidates: [] }), /at least one candidate/);
+});
+
 test('ProgramSchema and RunRecordSchema parse valid input', () => {
   ProgramSchema.parse({ goal: 'g', task_type: 'classification', metric: 'accuracy', direction: 'max', success_criteria: 'held_out >= 0.9', plan: 'do it' });
   RunRecordSchema.parse({ run_id: 'rd-1', raindrop_trace_id: 'rd-1', agent_role: 'code-optimizer', experiment_id: 'candidate-1', status: 'ok', anomalies: [], summary: 's' });

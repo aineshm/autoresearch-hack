@@ -24,7 +24,7 @@ export const CandidateSchema = z.object({
 
 export const PassResultsSchema = z.object({
   pass: z.number().int().nonnegative(),
-  candidates: z.array(CandidateSchema),
+  candidates: z.array(CandidateSchema).min(1, 'a pass must report at least one candidate'),
 });
 
 export const RunRecordSchema = z.object({
@@ -49,7 +49,7 @@ export const ChangeSchema = z.object({
 
 export const DirectiveSchema = z.object({
   pass: z.number().int().nonnegative(),
-  verdict: z.enum(['CONTINUE', 'RETRY', 'PIVOT', 'COMMIT', 'ESCALATE']),
+  verdict: z.enum(VERDICTS),
   checks: z.record(CheckSchema),
   changes: z.array(ChangeSchema),
   rationale: z.string(),
