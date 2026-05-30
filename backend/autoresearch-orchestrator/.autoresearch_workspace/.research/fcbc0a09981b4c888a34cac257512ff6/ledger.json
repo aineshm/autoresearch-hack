@@ -1,0 +1,23 @@
+{
+  "attempts": [
+    {
+      "approach": "increase learning rate to 0.04",
+      "attempt_id": "c37bbbd18a4b4bb4977dc78627fa6330",
+      "detail": "metric=1.050000, peak 43.9 GB",
+      "error_class": "no-improvement",
+      "generation": 1,
+      "outcome": "failure",
+      "packet_id": "exp1",
+      "signature": "b63b36ae1db9baad",
+      "timestamp": "2026-05-30T22:36:49Z",
+      "tokens": [
+        "0",
+        "04",
+        "increase",
+        "learning",
+        "rate"
+      ]
+    }
+  ],
+  "similarity_threshold": 0.8
+}
