@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeHeldOutGap, detectPlateau } from '../lib/tools.js';
+import { computeHeldOutGap, detectPlateau, crashRate, detectPlateauMetric } from '../lib/tools.js';
 
 test('computeHeldOutGap returns val-minus-held_out per candidate', () => {
   const results = { pass: 1, candidates: [
@@ -34,4 +34,21 @@ test('detectPlateau is false when improving', () => {
 
 test('detectPlateau is false with too little history', () => {
   assert.equal(detectPlateau([{ pass: 1, bestHeldOut: 0.8 }], { direction: 'max', minDelta: 0.005, window: 2 }), false);
+});
+
+test('crashRate is the fraction of crashed attempts in the window', () => {
+  const attempts = [
+    { status: 'keep' }, { status: 'crash' }, { status: 'discard' }, { status: 'crash' },
+  ];
+  assert.ok(Math.abs(crashRate(attempts, 4) - 0.5) < 1e-9);
+});
+
+test('detectPlateauMetric handles lower-is-better best-so-far', () => {
+  const history = [{ best: 1.0 }, { best: 0.99 }, { best: 0.989 }];
+  assert.equal(detectPlateauMetric(history, { lowerIsBetter: true, minDelta: 0.005, window: 2 }), true);
+});
+
+test('detectPlateauMetric false while clearly improving (lower-is-better)', () => {
+  const history = [{ best: 1.0 }, { best: 0.9 }, { best: 0.8 }];
+  assert.equal(detectPlateauMetric(history, { lowerIsBetter: true, minDelta: 0.005, window: 2 }), false);
 });
