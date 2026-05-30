@@ -1,0 +1,56 @@
+{
+  "attempts": [
+    {
+      "approach": "increase LR to 0.04",
+      "attempt_id": "8feb001f76d14b7db3d4a173293e51d8",
+      "detail": "metric=0.990000, peak 43.9 GB",
+      "error_class": "",
+      "generation": 1,
+      "outcome": "success",
+      "packet_id": "exp1",
+      "signature": "3d295819a6cc9c80",
+      "timestamp": "2026-05-30T22:24:11Z",
+      "tokens": [
+        "0",
+        "04",
+        "increase",
+        "lr"
+      ]
+    },
+    {
+      "approach": "switch to GeLU activation",
+      "attempt_id": "1f1e1300bb8a446d89ec7cb86c9d6a97",
+      "detail": "metric=1.020000, peak 43.9 GB",
+      "error_class": "no-improvement",
+      "generation": 2,
+      "outcome": "failure",
+      "packet_id": "exp2",
+      "signature": "3d98337f7311dc87",
+      "timestamp": "2026-05-30T22:24:11Z",
+      "tokens": [
+        "activation",
+        "gelu",
+        "switch"
+      ]
+    },
+    {
+      "approach": "double model width (OOM risk)",
+      "attempt_id": "ff46a07aee8548d2a1ffa1820bbc9dc9",
+      "detail": "run crashed (no metric produced)",
+      "error_class": "crash",
+      "generation": 3,
+      "outcome": "failure",
+      "packet_id": "exp3",
+      "signature": "88ead909c4ca3029",
+      "timestamp": "2026-05-30T22:24:12Z",
+      "tokens": [
+        "double",
+        "model",
+        "oom",
+        "risk",
+        "width"
+      ]
+    }
+  ],
+  "similarity_threshold": 0.8
+}

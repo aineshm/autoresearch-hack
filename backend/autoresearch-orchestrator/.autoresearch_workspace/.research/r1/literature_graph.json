@@ -1,0 +1,35 @@
+{
+  "edges": [
+    {
+      "relation": "authored_by",
+      "source": "arxiv:1",
+      "target": "author:a_author"
+    }
+  ],
+  "order": [
+    "arxiv:1"
+  ],
+  "papers": {
+    "arxiv:1": {
+      "arxiv_id": null,
+      "authors": [
+        "A. Author"
+      ],
+      "bibtex": "@article{author20241,\n  title = {Graph Paper},\n  author = {A. Author},\n  year = {2024},\n  url = {https://example/arxiv:1},\n}",
+      "categories": [],
+      "citation_apa": "A. Author (2024). Graph Paper. https://example/arxiv:1",
+      "citation_key": "author20241",
+      "cited_by_count": null,
+      "doi": null,
+      "paper_id": "arxiv:1",
+      "references": [],
+      "semantic_scholar_id": null,
+      "source": "arxiv",
+      "summary": "Abstract.",
+      "title": "Graph Paper",
+      "url": "https://example/arxiv:1",
+      "year": 2024
+    }
+  },
+  "queries": []
+}
