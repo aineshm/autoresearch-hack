@@ -1,0 +1,15 @@
+{
+  "name": "autolab-orchestration",
+  "version": "0.1.0",
+  "description": "AutoLab L2+L3 orchestration — blackboard + L3 Synthesizer",
+  "type": "module",
+  "main": "lib/synthesize.js",
+  "scripts": {
+    "test": "node --test",
+    "synthesize": "node bin/synthesize.js"
+  },
+  "dependencies": {
+    "zod": "^3.23.8",
+    "openai": "^6.39.1"
+  }
+}
