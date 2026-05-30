@@ -24,6 +24,26 @@ function detectPack(goal, transcript) {
   return ALFA_RE.test(text) ? ALFA_PACK : null;
 }
 
+// Guarantee NO em-dashes/en-dashes in anything we return (the prompt asks the model to avoid
+// them, but this makes it deterministic). "a — b" -> "a, b"; "10—20" -> "10-20".
+function deEmDash(s) {
+  return s
+    .replace(/(\d)\s*[—–]\s*(\d)/g, '$1-$2')
+    .replace(/(\S)\s*[—–]\s*(\S)/g, '$1, $2')
+    .replace(/[—–]/g, '-');
+}
+function sanitize(v) {
+  if (typeof v === 'string') return deEmDash(v);
+  if (Array.isArray(v)) return v.map(sanitize);
+  if (v && typeof v === 'object') { for (const k of Object.keys(v)) v[k] = sanitize(v[k]); return v; }
+  return v;
+}
+function sanitizeStep(step) {
+  if (step?.question) step.question = sanitize(step.question);
+  if (step?.brief) step.brief = sanitize(step.brief);
+  return step;
+}
+
 export function briefConfigured() {
   return !!openai;
 }
@@ -41,7 +61,7 @@ export function briefReasoning() {
  */
 export async function nextStep({ goal, dataset = null, transcript = [], model } = {}) {
   if (!goal || !String(goal).trim()) throw new Error('goal is required');
-  if (!openai) return fallbackStep({ goal, transcript });
+  if (!openai) return sanitizeStep(fallbackStep({ goal, transcript }));
 
   // Attach data facts ONLY when we genuinely have them: an explicitly-passed dataset, or the
   // ALFA pack when the conversation is actually about that UAV scenario. Otherwise run general
@@ -65,9 +85,9 @@ export async function nextStep({ goal, dataset = null, transcript = [], model } 
     /* fall through to fallback */
   }
   const step = validateStep(parsed);
-  if (!step) return fallbackStep({ goal, transcript }); // never break the interview on a bad shape
+  if (!step) return sanitizeStep(fallbackStep({ goal, transcript })); // never break the interview on a bad shape
   if (step.action === 'finalize') normalizeBrief(step.brief, ds);
-  return step;
+  return sanitizeStep(step);
 }
 
 // Guarantee the brief always carries the full PRD shape, so the UI + Planner never see missing

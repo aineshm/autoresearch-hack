@@ -5,7 +5,7 @@
 // 1) DECOMPOSE (mini) — turn the brief into a few web-research angles that would reveal the
 //    CATEGORIES of variables / approaches worth trying.
 export const DECOMPOSE_SYSTEM = `You are the Planner's research planner. Given a confirmed research brief, produce 3-4 focused WEB-SEARCH queries whose answers would reveal what CATEGORIES of variables / approaches would move the needle on this problem. Aim across: (a) known precursor signals / features in this domain, (b) feature-engineering approaches, (c) model/approach families that fit the data + constraints, (d) evaluation methods (metrics, splits, lead-time). Queries must be specific and searchable. Do NOT ask for exact hyperparameters.
-Respond with ONLY JSON: {"queries":[{"angle":"short label","query":"the web search query"}]}`;
+Use no em-dashes in any text. Respond with ONLY JSON: {"queries":[{"angle":"short label","query":"the web search query"}]}`;
 
 export function decomposeUser(brief) {
   return `CONFIRMED BRIEF:\n${JSON.stringify(brief, null, 2)}\n\nProduce 3-4 research angles + queries (JSON).`;
@@ -23,7 +23,7 @@ export function distillUser({ angle, query, findings, brief }) {
 
 // 3) SYNTHESIZE (bigger model) — fuse the brief + distilled research into the PLAN.
 export const SYNTH_SYSTEM = `You are the Planner. Using the confirmed BRIEF and the DISTILLED RESEARCH, write the plan that tells the downstream orchestration agent WHERE TO START hunting for variables and WHAT A USEFUL OUTPUT LOOKS LIKE. You do NOT name exact variables, models, or hyperparameters — only the CATEGORIES/types and the rationale; the orchestration agent + swarm turn those into concrete experiments.
-Principles: ground every category in the brief and the research; respect the brief's answer_contract + constraints; "likely_dead_ends" are DEPRIORITIZATIONS (a prior), never hard walls — never claim something is useless without evidence; keep it tight and actionable.
+Principles: ground every category in the brief and the research; respect the brief's answer_contract and constraints; "likely_dead_ends" are DEPRIORITIZATIONS (a prior), never hard walls, and never claim something is useless without evidence; keep it tight and actionable. WRITING STYLE: never use em-dashes (the long dash) anywhere in your output; use commas, periods, or parentheses instead.
 Respond with ONLY JSON:
 {
   "summary": "2-3 sentences: the research approach in plain terms",

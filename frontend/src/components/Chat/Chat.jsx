@@ -253,7 +253,7 @@ export default function Chat({ user, onLogout }) {
               <img src="/autolab-logo.svg" alt="" className="chat-empty-logo" />
               <h1 className="chat-empty-title">Hi {firstName}, what problem should AutoLab solve?</h1>
               <p className="chat-empty-sub">
-                Describe your goal and your data. I’ll ask a few quick questions, then write the brief —
+                Describe your goal and your data. I’ll ask a few quick questions, then write the brief:
                 the exact problem, how it should have been asked.
               </p>
             </div>

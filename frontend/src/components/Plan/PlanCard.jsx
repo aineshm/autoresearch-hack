@@ -23,7 +23,7 @@ export default function PlanCard({ plan, launched, onRun }) {
 
   return (
     <div className="plan">
-      <div className="plan-tag">The plan — what the research swarm should hunt for</div>
+      <div className="plan-tag">The plan: what the research swarm should hunt for</div>
       {plan.summary && <div className="plan-summary">{plan.summary}</div>}
 
       <div className="plan-sec-label">Variable categories to explore</div>
@@ -87,7 +87,7 @@ export default function PlanCard({ plan, launched, onRun }) {
       )}
 
       {launched ? (
-        <div className="plan-launched"><PulseIcon /> Launched — handed to the autoresearch swarm</div>
+        <div className="plan-launched"><PulseIcon /> Launched. Handed to the autoresearch swarm</div>
       ) : (
         <div className="plan-actions">
           <button type="button" className="plan-run" onClick={onRun}><ZapIcon /> Run autoresearch</button>

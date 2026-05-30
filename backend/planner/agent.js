@@ -16,6 +16,20 @@ const SYNTH_MODEL = process.env.PLANNER_SYNTH_MODEL || 'gpt-5.4';           // t
 const REASONING = process.env.PLANNER_REASONING_EFFORT || 'medium';
 const MAX_ANGLES = Number(process.env.PLANNER_MAX_ANGLES || 4);
 
+// Deterministic em-dash/en-dash removal for anything we surface to the user.
+function deEmDash(s) {
+  return s
+    .replace(/(\d)\s*[—–]\s*(\d)/g, '$1-$2')
+    .replace(/(\S)\s*[—–]\s*(\S)/g, '$1, $2')
+    .replace(/[—–]/g, '-');
+}
+function sanitize(v) {
+  if (typeof v === 'string') return deEmDash(v);
+  if (Array.isArray(v)) return v.map(sanitize);
+  if (v && typeof v === 'object') { for (const k of Object.keys(v)) v[k] = sanitize(v[k]); return v; }
+  return v;
+}
+
 export function plannerConfigured() {
   return !!openai;
 }
@@ -79,7 +93,7 @@ export async function runPlanStream({ brief, emit = () => {} } = {}) {
   // 1) decompose into research angles
   emit({ type: 'stage', stage: 'decompose', label: 'Planning research' });
   const dec = await jsonCall(MINI_MODEL, DECOMPOSE_SYSTEM, decomposeUser(brief));
-  const queries = (Array.isArray(dec.queries) ? dec.queries : []).slice(0, MAX_ANGLES);
+  const queries = sanitize((Array.isArray(dec.queries) ? dec.queries : []).slice(0, MAX_ANGLES));
   if (!queries.length) {
     const fb = fallbackPlan(brief);
     emit({ type: 'plan', plan: fb.plan });
@@ -110,7 +124,7 @@ export async function runPlanStream({ brief, emit = () => {} } = {}) {
 
   // 4) synthesize the plan (bigger agent)
   emit({ type: 'stage', stage: 'synthesize', label: 'Writing the plan' });
-  const plan = await jsonCall(SYNTH_MODEL, SYNTH_SYSTEM, synthUser({ brief, distilled }));
+  const plan = sanitize(await jsonCall(SYNTH_MODEL, SYNTH_SYSTEM, synthUser({ brief, distilled })));
   if (!Array.isArray(plan.research_sources) || !plan.research_sources.length) {
     plan.research_sources = distilled.flatMap((d) => d.sources || []).slice(0, 8);
   }

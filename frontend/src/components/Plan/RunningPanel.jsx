@@ -57,7 +57,7 @@ export default function RunningPanel() {
       </div>
 
       <div className="running-foot">
-        the orchestration swarm iterates here — live engine wiring is the next tier
+        the orchestration swarm iterates here; live engine wiring is the next tier
       </div>
     </div>
   );

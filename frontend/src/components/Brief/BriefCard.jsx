@@ -43,7 +43,7 @@ export default function BriefCard({ brief, confirmed, onConfirm }) {
 
   return (
     <div className="bcard">
-      <div className="bcard-tag">Your brief — confirm this is what you mean</div>
+      <div className="bcard-tag">Your brief: confirm this is what you mean</div>
       <div className="bcard-q">{brief.enriched_question}</div>
       {intent.what_they_want && <div className="bcard-intent">{intent.what_they_want}</div>}
 
@@ -72,7 +72,7 @@ export default function BriefCard({ brief, confirmed, onConfirm }) {
       )}
 
       {confirmed ? (
-        <div className="bcard-confirmed">✓ Locked — handing to the planner</div>
+        <div className="bcard-confirmed">✓ Locked. Handing to the planner</div>
       ) : (
         <div className="bcard-actions">
           <button type="button" className="bcard-yes" onClick={onConfirm}>✓ Yes, this is what I mean</button>
