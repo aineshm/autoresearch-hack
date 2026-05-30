@@ -48,7 +48,7 @@ test('synthesize writes a schema-valid directive using the injected llm', async 
 });
 
 test('synthesizeL2 writes a directive from an L2 run dir using injected llm', async () => {
-  const { cpSync, mkdtempSync, rmSync, existsSync, readFileSync } = await import('node:fs');
+  const { cpSync, mkdtempSync, rmSync, existsSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
   const tmp = mkdtempSync(join(tmpdir(), 'l2syn-'));
   cpSync(join(FIX, 'l2-run'), tmp, { recursive: true });
