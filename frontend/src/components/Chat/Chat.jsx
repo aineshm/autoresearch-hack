@@ -1,17 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import Background from '../Background/Background';
 import Sidebar from '../Sidebar/Sidebar';
+import QuestionCard from '../Brief/QuestionCard';
+import BriefCard from '../Brief/BriefCard';
+import PlanCard from '../Plan/PlanCard';
+import ResearchPanel from '../Plan/ResearchPanel';
+import RunningPanel from '../Plan/RunningPanel';
 import { api, getToken } from '../../api';
 import './Chat.css';
 
 let convCounter = 1;
-const newConversation = () => ({ id: `c${convCounter++}`, title: 'New chat', messages: [] });
+// A conversation runs the brief interview: goal → questions → enriched brief.
+const newConversation = () => ({
+  id: `c${convCounter++}`,
+  title: 'New chat',
+  messages: [], // { role, kind:'text'|'question'|'brief', content?, question?, brief?, answered?, confirmed?, error? }
+  goal: null,
+  transcript: [], // [{ id, question, answer }]
+  phase: 'idle', // idle | interviewing | confirming | locked
+});
 
 export default function Chat({ user, onLogout }) {
   const [conversations, setConversations] = useState(() => [newConversation()]);
   const [activeId, setActiveId] = useState(conversations[0].id);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [planStage, setPlanStage] = useState(null);
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('autolab_sidebar_collapsed') === '1'
   );
@@ -32,10 +46,21 @@ export default function Chat({ user, onLogout }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending]);
 
+  // While the planner runs (web research → plan), rotate the thinking label through its stages.
+  useEffect(() => {
+    if (active.phase !== 'planning') { setPlanStage(null); return; }
+    const stages = ['Planning research', 'Researching the domain', 'Reading the research', 'Writing the plan'];
+    let i = 0;
+    setPlanStage(stages[0]);
+    const t = setInterval(() => { i = Math.min(i + 1, stages.length - 1); setPlanStage(stages[i]); }, 7000);
+    return () => clearInterval(t);
+  }, [active.phase, active.id]);
+
   function patchActive(updater) {
-    setConversations((convs) =>
-      convs.map((c) => (c.id === activeId ? updater(c) : c))
-    );
+    setConversations((convs) => convs.map((c) => (c.id === activeId ? updater(c) : c)));
+  }
+  function patchConv(id, updater) {
+    setConversations((convs) => convs.map((c) => (c.id === id ? updater(c) : c)));
   }
 
   function autosize() {
@@ -46,7 +71,6 @@ export default function Chat({ user, onLogout }) {
   }
 
   function handleNewChat() {
-    // reuse current chat if it's already empty (like ChatGPT)
     if (empty) return;
     const conv = newConversation();
     setConversations((c) => [conv, ...c]);
@@ -54,36 +78,130 @@ export default function Chat({ user, onLogout }) {
     setInput('');
   }
 
-  async function send() {
-    const text = input.trim();
-    if (!text || sending) return;
-
-    // conversation history sent to the model (drop error notices)
-    const history = [
-      ...active.messages.filter((m) => !m.error).map((m) => ({ role: m.role, content: m.content })),
-      { role: 'user', content: text },
-    ];
-
-    patchActive((c) => ({
-      ...c,
-      title: c.messages.length === 0 ? text.slice(0, 40) : c.title,
-      messages: [...c.messages, { role: 'user', content: text }],
-    }));
-    setInput('');
+  // Run one interview step against /api/brief/next, then render the result.
+  async function advance(convId, goal, transcript) {
     setSending(true);
-    requestAnimationFrame(autosize);
-
     try {
-      const { reply } = await api.chat(history, getToken());
-      patchActive((c) => ({ ...c, messages: [...c.messages, { role: 'assistant', content: reply }] }));
+      const step = await api.briefNext({ goal, transcript }, getToken());
+      patchConv(convId, (c) => {
+        if (step.action === 'finalize') {
+          return { ...c, phase: 'confirming', messages: [...c.messages, { role: 'assistant', kind: 'brief', brief: step.brief }] };
+        }
+        return { ...c, phase: 'interviewing', messages: [...c.messages, { role: 'assistant', kind: 'question', question: step.question }] };
+      });
     } catch (err) {
-      patchActive((c) => ({
+      patchConv(convId, (c) => ({
         ...c,
-        messages: [...c.messages, { role: 'assistant', content: `⚠ ${err.message || 'Something went wrong.'}`, error: true }],
+        messages: [...c.messages, { role: 'assistant', kind: 'text', content: `⚠ ${err.message || 'The brief agent failed.'}`, error: true }],
       }));
     } finally {
       setSending(false);
     }
+  }
+
+  // Record an answer (from a clicked chip or free text) and advance.
+  function submitAnswer(conv, value, label) {
+    const pendingIdx = [...conv.messages].map((m, i) => [m, i]).reverse()
+      .find(([m]) => m.kind === 'question' && !m.answered)?.[1];
+    const pending = pendingIdx != null ? conv.messages[pendingIdx] : null;
+    const id = pending ? pending.question.id : `refine_${conv.transcript.length}`;
+    const qtext = pending ? pending.question.question : '(refinement)';
+    const transcript = [...conv.transcript, { id, question: qtext, answer: value }];
+
+    patchConv(conv.id, (c) => ({
+      ...c,
+      transcript,
+      messages: c.messages
+        .map((m, i) => (i === pendingIdx ? { ...m, answered: true } : m))
+        .concat([{ role: 'user', kind: 'text', content: label || value }]),
+    }));
+    advance(conv.id, conv.goal, transcript);
+  }
+
+  // textarea submit: first message = the goal; afterwards = free-text answer / refine.
+  function send() {
+    const text = input.trim();
+    if (!text || sending || active.phase === 'planning') return;
+    setInput('');
+    requestAnimationFrame(autosize);
+
+    if (!active.goal) {
+      const goal = text;
+      patchActive((c) => ({
+        ...c,
+        goal,
+        phase: 'interviewing',
+        title: c.messages.length === 0 ? text.slice(0, 40) : c.title,
+        messages: [...c.messages, { role: 'user', kind: 'text', content: text }],
+      }));
+      advance(active.id, goal, []);
+      return;
+    }
+    submitAnswer(active, text, text);
+  }
+
+  function answerQuestion(value, label) {
+    if (sending) return;
+    submitAnswer(active, value, label);
+  }
+
+  async function confirmBrief(idx) {
+    const conv = active;
+    const brief = conv.messages[idx]?.brief;
+    // mark brief confirmed + append a live research panel; its index is the new last message
+    const researchIdx = conv.messages.length;
+    patchActive((c) => ({
+      ...c,
+      phase: 'planning',
+      messages: c.messages
+        .map((m, i) => (i === idx ? { ...m, confirmed: true } : m))
+        .concat([{ role: 'assistant', kind: 'research', research: { stage: 'Planning research', angles: [], done: false } }]),
+    }));
+
+    const updateResearch = (fn) =>
+      patchConv(conv.id, (c) => ({
+        ...c,
+        messages: c.messages.map((m, i) => (i === researchIdx ? { ...m, research: fn(m.research) } : m)),
+      }));
+
+    const onEvent = (evt) => {
+      if (evt.type === 'stage') {
+        updateResearch((r) => ({ ...r, stage: evt.label }));
+      } else if (evt.type === 'queries') {
+        updateResearch((r) => ({ ...r, angles: evt.queries.map((q) => ({ angle: q.angle, query: q.query, status: 'pending', sources: [] })) }));
+      } else if (evt.type === 'search_start') {
+        updateResearch((r) => ({ ...r, angles: r.angles.map((a) => (a.query === evt.query ? { ...a, status: 'searching' } : a)) }));
+      } else if (evt.type === 'search_done') {
+        updateResearch((r) => ({ ...r, angles: r.angles.map((a) => (a.query === evt.query ? { ...a, status: 'done', sources: evt.sources || [] } : a)) }));
+      }
+    };
+
+    try {
+      const plan = await api.plannerPlanStream(brief, getToken(), onEvent);
+      updateResearch((r) => ({ ...r, done: true }));
+      patchConv(conv.id, (c) => ({
+        ...c,
+        phase: 'plan-ready',
+        messages: [...c.messages, { role: 'assistant', kind: 'plan', plan }],
+      }));
+    } catch (err) {
+      updateResearch((r) => ({ ...r, done: true }));
+      patchConv(conv.id, (c) => ({
+        ...c,
+        phase: 'confirming',
+        messages: [...c.messages, { role: 'assistant', kind: 'text', content: `⚠ ${err.message || 'Planning failed.'}`, error: true }],
+      }));
+    }
+  }
+
+  function runPlan(idx) {
+    patchActive((c) => ({
+      ...c,
+      phase: 'launched',
+      messages: c.messages
+        .map((m, i) => (i === idx ? { ...m, launched: true } : m))
+        .concat([{ role: 'assistant', kind: 'running' }]),
+    }));
   }
 
   function onKeyDown(e) {
@@ -92,6 +210,26 @@ export default function Chat({ user, onLogout }) {
       send();
     }
   }
+
+  const placeholder = !active.goal
+    ? 'Describe your problem…'
+    : active.phase === 'planning'
+      ? 'Researching the domain…'
+      : active.phase === 'confirming'
+        ? 'Type a tweak to refine, or click “Yes, this is what I mean”…'
+        : 'Type your answer, or tap an option above…';
+
+  // Spinner label matches the actual phase. We only say "Writing your brief" once the agent
+  // is genuinely finalizing — at the 3-question cap it's forced to finalize; before that it's
+  // still deciding/asking, so "Thinking".
+  const thinkingLabel =
+    active.phase === 'planning'
+      ? (planStage || 'Researching the domain')
+      : !active.goal || active.transcript.length === 0
+        ? 'Reading your problem'
+        : active.transcript.length >= 3
+          ? 'Writing your brief'
+          : 'Thinking';
 
   return (
     <div className={`chat${collapsed ? ' chat--collapsed' : ''}`}>
@@ -113,24 +251,68 @@ export default function Chat({ user, onLogout }) {
           {empty ? (
             <div className="chat-empty">
               <img src="/autolab-logo.svg" alt="" className="chat-empty-logo" />
-              <h1 className="chat-empty-title">Hi {firstName}, what do you want to build?</h1>
+              <h1 className="chat-empty-title">Hi {firstName}, what problem should AutoLab solve?</h1>
               <p className="chat-empty-sub">
-                Describe a system and AutoLab will help you take it from prompt to production.
+                Describe your goal and your data. I’ll ask a few quick questions, then write the brief —
+                the exact problem, how it should have been asked.
               </p>
             </div>
           ) : (
             <div className="chat-thread">
-              {messages.map((m, i) => (
-                <div key={i} className={`msg msg--${m.role}${m.error ? ' msg--error' : ''}`}>
-                  <div className="msg-role">{m.role === 'user' ? 'You' : 'AutoLab'}</div>
-                  <div className="msg-bubble">{m.content}</div>
-                </div>
-              ))}
+              {messages.map((m, i) => {
+                if (m.kind === 'question') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <QuestionCard question={m.question} disabled={!!m.answered} onAnswer={answerQuestion} />
+                    </div>
+                  );
+                }
+                if (m.kind === 'brief') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <BriefCard brief={m.brief} confirmed={!!m.confirmed} onConfirm={() => confirmBrief(i)} />
+                    </div>
+                  );
+                }
+                if (m.kind === 'research') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <ResearchPanel research={m.research} />
+                    </div>
+                  );
+                }
+                if (m.kind === 'plan') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <PlanCard plan={m.plan} launched={!!m.launched} onRun={() => runPlan(i)} />
+                    </div>
+                  );
+                }
+                if (m.kind === 'running') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <RunningPanel />
+                    </div>
+                  );
+                }
+                return (
+                  <div key={i} className={`msg msg--${m.role}${m.error ? ' msg--error' : ''}`}>
+                    <div className="msg-role">{m.role === 'user' ? 'You' : 'AutoLab'}</div>
+                    <div className="msg-bubble">{m.content}</div>
+                  </div>
+                );
+              })}
               {sending && (
                 <div className="msg msg--assistant">
                   <div className="msg-role">AutoLab</div>
-                  <div className="msg-bubble msg-typing">
-                    <span></span><span></span><span></span>
+                  <div className="thinking">
+                    <span className="thinking-orb" />
+                    <span className="thinking-text">{thinkingLabel}</span>
                   </div>
                 </div>
               )}
@@ -145,13 +327,13 @@ export default function Chat({ user, onLogout }) {
               value={input}
               onChange={(e) => { setInput(e.target.value); autosize(); }}
               onKeyDown={onKeyDown}
-              placeholder="Message AutoLab…"
+              placeholder={placeholder}
               rows={1}
             />
             <button
               className="chat-send"
               onClick={send}
-              disabled={!input.trim() || sending}
+              disabled={!input.trim() || sending || active.phase === 'planning'}
               aria-label="Send"
             >
               ↑

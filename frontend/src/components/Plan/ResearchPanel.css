@@ -1,0 +1,81 @@
+.research {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  border-bottom-left-radius: 5px;
+  max-width: 90%;
+  overflow: hidden;
+  animation: pop-in 0.28s var(--ease-out-quint) both;
+}
+.research-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 15px;
+  border: none;
+  background: transparent;
+  color: #f0f0f0;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+.research-head-text { flex: 1; }
+.research-caret { color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; }
+
+/* pulsing dot while researching, solid green when done */
+.research-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #fafafa; flex-shrink: 0;
+  animation: orb-glow 1.6s ease-in-out infinite;
+}
+.research-dot--done { background: #8fe0a0; animation: none; box-shadow: none; }
+
+.research-body {
+  padding: 4px 15px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.research-row { display: flex; gap: 11px; animation: slide-up 0.25s var(--ease-out-quint) both; }
+.research-status {
+  flex-shrink: 0; width: 16px; text-align: center;
+  font-size: 0.85rem; line-height: 1.5; color: rgba(255, 255, 255, 0.5);
+}
+.research-status--done { color: #8fe0a0; }
+.research-row-main { min-width: 0; flex: 1; }
+.research-angle { font-size: 0.88rem; font-weight: 600; color: #ededed; }
+.research-query {
+  font-size: 0.8rem; line-height: 1.4; color: rgba(255, 255, 255, 0.45);
+  margin-top: 1px;
+}
+.research-chips { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 6px; }
+.research-chip {
+  font-size: 0.72rem;
+  color: #c9d6f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 3px 8px;
+  text-decoration: none;
+  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background 0.15s var(--ease-out-cubic);
+}
+.research-chip:hover { background: rgba(255, 255, 255, 0.12); }
+.research-chip--more { color: rgba(255, 255, 255, 0.5); }
+
+.research-stage { font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); }
+
+/* small inline spinner */
+.mini-spin {
+  display: inline-block;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fafafa;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}

@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import OpenAI from 'openai';
 import db from './db.js';
+import briefRouter from './brief/route.js';
+import plannerRouter from './planner/route.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
@@ -144,6 +146,11 @@ app.post('/api/chat', authRequired, async (req, res) => {
     return res.status(502).json({ error: 'The assistant failed to respond. Check the API key and server logs.' });
   }
 });
+
+// Brief agent — adaptive interview that turns a fuzzy goal into the enriched brief.
+app.use('/api/brief', authRequired, briefRouter);
+// Planner — confirmed brief → web research → plan (what TYPE of variables to hunt).
+app.use('/api/planner', authRequired, plannerRouter);
 
 app.listen(PORT, () => {
   console.log(`AutoLab backend listening on http://localhost:${PORT}`);
