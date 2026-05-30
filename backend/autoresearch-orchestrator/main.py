@@ -46,8 +46,14 @@ async def async_main() -> None:
 
     if args.experiment_repo:
         from agents.experiment_swarm import ExperimentSwarm
+        from config import settings
 
-        swarm = ExperimentSwarm()
+        runner = None
+        if settings.experiment_use_modal:
+            from backend.experiment.modal_runner import ModalExperimentRunner
+            runner = ModalExperimentRunner()
+
+        swarm = ExperimentSwarm(runner=runner)
         result = await swarm.run(args.experiment_repo, max_experiments=args.max_experiments)
         print(
             f"[EXPERIMENT] best={result.best_value} kept={result.kept}/{result.experiments_run} "

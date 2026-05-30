@@ -56,6 +56,7 @@ class Settings:
     experiment_timeout_seconds: int = int(os.getenv("AUTORESEARCH_EXPERIMENT_TIMEOUT", "600"))
     max_experiments: int = int(os.getenv("AUTORESEARCH_MAX_EXPERIMENTS", "100"))
     experiment_branch: str = os.getenv("AUTORESEARCH_EXPERIMENT_BRANCH", "")
+    experiment_use_modal: bool = _env_bool("EXPERIMENT_USE_MODAL", False)
     experiment_literature: bool = _env_bool("AUTORESEARCH_EXPERIMENT_LITERATURE", False)
     literature_arxiv_max_results: int = int(os.getenv("LITERATURE_ARXIV_MAX_RESULTS", "8"))
     literature_scholar_max_results: int = int(os.getenv("LITERATURE_SCHOLAR_MAX_RESULTS", "5"))
