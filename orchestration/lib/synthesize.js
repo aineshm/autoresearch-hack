@@ -1,5 +1,6 @@
 import { readProgram, readResults, readRuns, listPasses, writeDirective } from './blackboard.js';
 import { computeHeldOutGap, detectPlateau } from './tools.js';
+import { buildL2Evidence } from './l2adapter.js';
 
 // Best held-out for a pass, respecting optimization direction.
 function bestHeldOut(results, direction) {
@@ -37,6 +38,15 @@ export function buildEvidence(runDir) {
 export async function synthesize(runDir, { llm } = {}) {
   if (typeof llm !== 'function') throw new Error('synthesize requires an llm function');
   const evidence = buildEvidence(runDir);
+  const partial = await llm({ program: evidence.program, evidence });
+  const directive = { ...partial, pass: evidence.pass };
+  return writeDirective(runDir, evidence.pass, directive);
+}
+
+// L2-format run dir variant: reads results.tsv + ledger.json + program.md via l2adapter.
+export async function synthesizeL2(runDir, { llm } = {}) {
+  if (typeof llm !== 'function') throw new Error('synthesizeL2 requires an llm function');
+  const evidence = buildL2Evidence(runDir);
   const partial = await llm({ program: evidence.program, evidence });
   const directive = { ...partial, pass: evidence.pass };
   return writeDirective(runDir, evidence.pass, directive);

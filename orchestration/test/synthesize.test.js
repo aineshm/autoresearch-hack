@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { cpSync, mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { synthesize, buildEvidence } from '../lib/synthesize.js';
+import { synthesize, buildEvidence, synthesizeL2 } from '../lib/synthesize.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIX = join(here, '..', 'fixtures');
@@ -44,5 +44,24 @@ test('synthesize writes a schema-valid directive using the injected llm', async 
     assert.equal(onDisk.checks.overfit.ok, false);
   } finally {
     rmSync(run, { recursive: true, force: true });
+  }
+});
+
+test('synthesizeL2 writes a directive from an L2 run dir using injected llm', async () => {
+  const { cpSync, mkdtempSync, rmSync, existsSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const tmp = mkdtempSync(join(tmpdir(), 'l2syn-'));
+  cpSync(join(FIX, 'l2-run'), tmp, { recursive: true });
+  try {
+    const fakeLlm = async ({ evidence }) => ({
+      verdict: evidence.plateau ? 'PIVOT' : 'CONTINUE',
+      checks: { plateau: { ok: !evidence.plateau, evidence: 'x' }, crash: { ok: evidence.crashRate < 0.5, evidence: 'y' } },
+      changes: [], rationale: 'test', next_hypotheses: ['try smaller lr'],
+    });
+    const d = await synthesizeL2(tmp, { llm: fakeLlm });
+    assert.ok(['CONTINUE','RETRY','PIVOT','COMMIT','ESCALATE'].includes(d.verdict));
+    assert.ok(existsSync(join(tmp, 'directives', 'pass-5.json')));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 });
