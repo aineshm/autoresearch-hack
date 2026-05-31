@@ -1,0 +1,72 @@
+@keyframes cell-pulse {
+  0%, 100% { opacity: 0.14; transform: scale(0.82); }
+  45%      { opacity: 0.95; transform: scale(1); }
+}
+@keyframes running-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.0); }
+  35%  { box-shadow: 0 0 46px 6px rgba(255, 255, 255, 0.28); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.0); }
+}
+@keyframes dots-blink { 0% { content: ''; } 33% { content: '·'; } 66% { content: '··'; } 100% { content: '···'; } }
+
+.running {
+  position: relative;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+  padding: 20px 22px;
+  max-width: 92%;
+  /* a launch flash on appear, then settle */
+  animation: card-pop 0.4s var(--ease-out-quint) both, running-flash 1s var(--ease-out-quint) 0.15s 1;
+}
+
+.running-head { display: flex; align-items: center; gap: 14px; }
+.running-core {
+  position: relative;
+  width: 40px; height: 40px; flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.running-core-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(255,255,255,0.06), #ffffff 78%, rgba(255,255,255,0.06));
+  -webkit-mask: radial-gradient(circle 13px at center, transparent 95%, #000 0);
+  mask: radial-gradient(circle 13px at center, transparent 95%, #000 0);
+  animation: spin 1s linear infinite, orb-glow 2s ease-in-out infinite;
+}
+.running-core-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #fafafa;
+  animation: orb-glow 1.4s ease-in-out infinite;
+}
+
+.running-title { font-size: 1rem; font-weight: 600; color: #fafafa; }
+.running-sub { margin-top: 3px; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.running-round {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.74rem; color: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.08); border-radius: 6px; padding: 2px 8px;
+}
+.running-status {
+  color: transparent;
+  background: linear-gradient(100deg, rgba(255,255,255,0.4) 30%, #fff 50%, rgba(255,255,255,0.4) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  animation: shimmer 1.6s linear infinite;
+}
+.running-dots::after { content: '…'; -webkit-text-fill-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.5); }
+
+.running-grid {
+  margin: 18px 0 14px;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 6px;
+}
+.running-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: #fafafa;
+  animation: cell-pulse 1.7s ease-in-out infinite;
+}
+
+.running-foot { font-size: 0.78rem; color: rgba(255, 255, 255, 0.4); }

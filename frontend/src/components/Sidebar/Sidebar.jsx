@@ -39,7 +39,7 @@ const IconLogout = (p) => (
 );
 
 export default function Sidebar({
-  user, collapsed, onToggle, conversations, activeId, onSelect, onNewChat, onLogout,
+  user, project, onBack, collapsed, onToggle, conversations, activeId, onSelect, onNewChat, onLogout,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const footerRef = useRef(null);
@@ -70,6 +70,13 @@ export default function Sidebar({
           <IconSidebar />
         </button>
       </div>
+
+      {project && onBack && (
+        <button className="sidebar-project" onClick={onBack} title="Back to all projects">
+          <span className="sidebar-project-back">←</span>
+          <span className="sidebar-project-name">{project.name}</span>
+        </button>
+      )}
 
       <button className="new-chat" onClick={onNewChat} title="New chat">
         <IconNewChat />

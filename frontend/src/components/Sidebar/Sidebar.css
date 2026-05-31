@@ -2,22 +2,22 @@
   position: relative;
   z-index: 5;
   flex-shrink: 0;
-  width: 268px;
+  width: 272px;
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
+  gap: 4px;
+  padding: 14px 12px;
   background: rgba(12, 12, 12, 0.78);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  transition: width 0.2s ease, padding 0.2s ease;
-  overflow: hidden;
+  transition: width 0.28s var(--ease-out-quint), padding 0.28s var(--ease-out-quint);
+  /* visible so the profile popover can escape; each label clips itself, and the
+     conversation list scrolls in its own box, so nothing else spills. */
+  overflow: visible;
 }
-.sidebar--collapsed {
-  width: 64px;
-}
+.sidebar--collapsed { width: 66px; }
 
 /* top: brand + collapse toggle */
 .sidebar-top {
@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 6px 8px;
+  padding: 4px 6px 10px;
   min-height: 44px;
 }
 .sidebar-brand {
@@ -35,13 +35,17 @@
   text-decoration: none;
   color: #fafafa;
   overflow: hidden;
+  min-width: 0;
 }
 .sidebar-logo { width: 24px; height: 24px; flex-shrink: 0; }
 .sidebar-brand-name {
   font-family: 'Geist Mono', ui-monospace, monospace;
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .icon-btn {
@@ -55,17 +59,42 @@
   background: transparent;
   color: #c9c9c9;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s var(--ease-out-cubic), color 0.15s ease, transform 0.06s ease;
 }
 .icon-btn:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
+.icon-btn:active { transform: scale(0.92); }
 
-/* collapsed: hide brand name + toggle centers */
+/* collapsed: hide brand name + center the toggle */
 .sidebar--collapsed .sidebar-brand-name { display: none; }
 .sidebar--collapsed .sidebar-top {
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 0 8px;
+  gap: 8px;
+  padding: 4px 0 10px;
 }
+
+/* current project + back to dashboard */
+.sidebar-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s var(--ease-out-cubic), color 0.15s ease;
+}
+.sidebar-project:hover { background: rgba(255, 255, 255, 0.07); color: #fafafa; }
+.sidebar-project-back { flex-shrink: 0; font-size: 1rem; }
+.sidebar-project-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.sidebar--collapsed .sidebar-project { justify-content: center; padding: 8px 0; }
+.sidebar--collapsed .sidebar-project-name { display: none; }
 
 /* new chat */
 .new-chat {
@@ -82,9 +111,18 @@
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.18s var(--ease-out-quint),
+              border-color 0.18s var(--ease-out-quint),
+              transform 0.08s ease,
+              box-shadow 0.18s var(--ease-out-quint);
 }
-.new-chat:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.22); }
+.new-chat:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+.new-chat:active { transform: translateY(0) scale(0.985); }
 .new-chat svg { flex-shrink: 0; }
 .sidebar--collapsed .new-chat { justify-content: center; padding: 10px 0; }
 .sidebar--collapsed .new-chat-label { display: none; }
@@ -92,7 +130,7 @@
 /* conversation list */
 .sidebar-list {
   flex: 1;
-  margin-top: 8px;
+  margin-top: 10px;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
@@ -100,13 +138,14 @@
   gap: 2px;
 }
 .sidebar-list-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.34);
-  padding: 6px 10px;
+  color: rgba(255, 255, 255, 0.32);
+  padding: 8px 10px 6px;
 }
 .conv {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -115,21 +154,30 @@
   border-radius: 9px;
   border: none;
   background: transparent;
-  color: #d6d6d6;
+  color: #d0d0d0;
   font-family: inherit;
   font-size: 0.88rem;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s ease;
+  animation: slide-in-left 0.26s var(--ease-out-quint) both;
+  transition: background 0.16s var(--ease-out-cubic), color 0.16s ease;
 }
-.conv:hover { background: rgba(255, 255, 255, 0.07); }
-.conv--active { background: rgba(255, 255, 255, 0.12); color: #fff; }
-.conv-icon { flex-shrink: 0; opacity: 0.7; }
-.conv-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.conv:hover { background: rgba(255, 255, 255, 0.07); color: #f2f2f2; }
+.conv--active { background: rgba(255, 255, 255, 0.11); color: #fff; }
+/* active accent bar */
+.conv--active::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: #fafafa;
 }
+.conv-icon { flex-shrink: 0; opacity: 0.65; }
+.conv-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar--collapsed .sidebar-list { display: none; }
 
 /* footer / profile */
@@ -151,9 +199,10 @@
   color: #ededed;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.16s var(--ease-out-cubic), transform 0.08s ease;
 }
 .profile-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.profile-btn:active { transform: scale(0.985); }
 .avatar {
   flex-shrink: 0;
   width: 34px;
@@ -179,18 +228,17 @@
 /* profile popover menu */
 .profile-menu {
   position: absolute;
+  z-index: 60;
   bottom: calc(100% + 8px);
   left: 0;
   right: 0;
   border-radius: 14px;
   padding: 6px;
-  animation: pop-in 0.15s ease;
+  transform-origin: bottom left;
+  animation: pop-in 0.16s var(--ease-out-quint);
 }
-.sidebar--collapsed .profile-menu {
-  left: 0;
-  right: auto;
-  width: 210px;
-}
+/* collapsed: float the menu out to the right of the rail so it isn't a sliver */
+.sidebar--collapsed .profile-menu { left: 0; right: auto; width: 230px; }
 .profile-menu-head {
   display: flex;
   flex-direction: column;
@@ -227,13 +275,11 @@
   font-family: inherit;
   font-size: 0.88rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s var(--ease-out-cubic);
 }
 .profile-menu-item:hover { background: rgba(255, 255, 255, 0.1); }
 
 @media (max-width: 640px) {
   .sidebar { position: absolute; }
-  .sidebar:not(.sidebar--collapsed) {
-    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
-  }
+  .sidebar:not(.sidebar--collapsed) { box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
 }
