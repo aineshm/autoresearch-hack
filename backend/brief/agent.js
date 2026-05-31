@@ -71,7 +71,7 @@ export async function nextStep({ goal, dataset = null, transcript = [], model } 
   // Record/replay: same inputs -> same recorded output (deterministic demo).
   const ck = cache.key('brief.next', { goal, transcript, dataset: ds });
   const hit = cache.get(ck);
-  if (hit) return hit;
+  if (hit) return { ...hit, cached: true }; // replay (flag is transient, not stored)
 
   let result;
   if (!openai) {
@@ -97,7 +97,7 @@ export async function nextStep({ goal, dataset = null, transcript = [], model } 
     }
   }
   cache.set(ck, result);
-  return result;
+  return { ...result, cached: false }; // generated live
 }
 
 // Guarantee the brief always carries the full PRD shape, so the UI + Planner never see missing

@@ -94,12 +94,14 @@ export async function runPlanStream({ brief, emit = () => {} } = {}) {
   const ck = cache.key('planner.plan', { brief });
   const hit = cache.get(ck);
   if (hit) {
+    emit({ type: 'meta', cached: true }); // replaying recorded research
     for (const e of hit.events) {
       emit(e);
       await sleep(REPLAY_DELAY[e.type] ?? 200);
     }
     return hit.result;
   }
+  emit({ type: 'meta', cached: false }); // generating live (not recorded)
   // Record every event we emit on this live run.
   const recorded = [];
   const realEmit = emit;
