@@ -6,6 +6,7 @@ import BriefCard from '../Brief/BriefCard';
 import PlanCard from '../Plan/PlanCard';
 import ResearchPanel from '../Plan/ResearchPanel';
 import RunningPanel from '../Plan/RunningPanel';
+import AlfaPanel from '../Alfa/AlfaPanel';
 import Upload from '../Project/Upload';
 import { api, getToken } from '../../api';
 import './Chat.css';
@@ -334,7 +335,9 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
                   return (
                     <div key={i} className="msg msg--assistant">
                       <div className="msg-role">AutoLab</div>
-                      <RunningPanel />
+                      {project?.kind === 'demo'
+                        ? <AlfaPanel />
+                        : <RunningPanel />}
                     </div>
                   );
                 }

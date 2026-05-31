@@ -7,6 +7,7 @@ import db from './db.js';
 import briefRouter from './brief/route.js';
 import plannerRouter from './planner/route.js';
 import projectsRouter from './projects/route.js';
+import alfaRouter from './alfa/route.js';
 import * as cache from './lib/cache.js';
 
 const PORT = process.env.PORT || 4000;
@@ -178,6 +179,8 @@ app.use('/api/brief', keyOrAuth, briefRouter);
 app.use('/api/planner', keyOrAuth, plannerRouter);
 // Projects: per-user projects, each with its own uploaded dataset + chats (web app, JWT only).
 app.use('/api/projects', authRequired, projectsRouter);
+// ALFA research loop: stream live experiment results from the Python runner.
+app.use('/api/alfa', keyOrAuth, alfaRouter);
 
 // Record/replay cache controls. Clear before a fresh recording run; stats to inspect.
 app.get('/api/cache/stats', keyOrAuth, (_req, res) => res.json(cache.stats()));
