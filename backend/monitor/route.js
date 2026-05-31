@@ -6,10 +6,10 @@ const router = Router();
 
 const BASE_DIR = process.env.MONITOR_RUNS_DIR || '/tmp/autolab-runs';
 
-// Metric names where lower value is better.
-const LOWER_IS_BETTER_RE = /\b(val_bpb|val_loss)\b/i;
-// All metric names we can detect.
-const METRIC_RE = /\b(val_bpb|val_loss|accuracy|score|reward)\b/i;
+// Metric names where lower value is better (by convention).
+const LOWER_IS_BETTER_RE = /\b(val_bpb|val_loss|loss|latency|error|rate)\b/i;
+// Metric names we can detect (loss/score families + common ML metrics + the metric: line).
+const METRIC_RE = /\b(val_bpb|val_loss|event_level_f1|f1|accuracy|score|reward|auc|recall|precision)\b/i;
 
 /**
  * Safely resolve a runId to an absolute directory path.
@@ -64,10 +64,19 @@ function parseResultsTsv(content) {
  * Extract the metric name and lowerIsBetter flag from program.md content.
  */
 function extractMetricInfo(content) {
+  // Prefer an explicit declaration: "metric is `X`" / "metric: X" / "metric=X".
+  const explicit = content.match(/metric\s*(?:is|:|=)\s*`?([A-Za-z][\w]*)`?/i);
   const m = content.match(METRIC_RE);
-  if (!m) return { metric: 'val_bpb', lowerIsBetter: true };
-  const metric = m[1].toLowerCase();
-  return { metric, lowerIsBetter: LOWER_IS_BETTER_RE.test(metric) };
+  const metric = (explicit ? explicit[1] : m ? m[1] : 'val_bpb').toLowerCase();
+
+  // Explicit phrasing in program.md wins over the name-based heuristic.
+  if (/\b(higher|larger|greater)\s+is\s+better\b|\bmaximize\b/i.test(content)) {
+    return { metric, lowerIsBetter: false };
+  }
+  if (/\b(lower|smaller)\s+is\s+better\b|\bminimize\b/i.test(content)) {
+    return { metric, lowerIsBetter: true };
+  }
+  return { metric, lowerIsBetter: m ? LOWER_IS_BETTER_RE.test(metric) : true };
 }
 
 /**
@@ -174,8 +183,21 @@ router.get('/:runId/status', async (req, res) => {
     const best = computeBest(experiments, lowerIsBetter);
     const latestDirective = await loadLatestDirective(runDir);
 
+    // The run is DONE when a summary.json was written (replay/real-swarm completion)
+    // OR the latest directive reached a terminal verdict.
+    let summary = null;
+    try {
+      summary = JSON.parse(await readFile(join(runDir, 'summary.json'), 'utf8'));
+    } catch {
+      summary = null;
+    }
+    const terminalVerdict =
+      latestDirective && ['COMMIT', 'ESCALATE'].includes(latestDirective.verdict);
+    const status = summary || terminalVerdict ? 'done' : 'running';
+
     return res.json({
       runId,
+      status,
       metric,
       lowerIsBetter,
       best,
@@ -183,6 +205,7 @@ router.get('/:runId/status', async (req, res) => {
       counts,
       experiments,
       latestDirective,
+      summary,
     });
   } catch (err) {
     console.error(`[monitor] Error reading run ${runId}:`, err?.message || err);

@@ -371,3 +371,81 @@
 .sm-row-status--keep    { background: rgba(52, 211, 153, 0.14);  color: #34d399; }
 .sm-row-status--discard { background: rgba(251, 191, 36, 0.14);  color: #fbbf24; }
 .sm-row-status--crash   { background: rgba(248, 113, 113, 0.14); color: #f87171; }
+
+/* ── Completion card (run done) ─────────────────────────────────────────── */
+.sm-orb--done .sm-orb-ring { animation: none; opacity: 0.5; }
+.sm-orb--done .sm-orb-dot { background: #34d399; animation: none; }
+
+.sm-complete {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: linear-gradient(180deg, rgba(52,211,153,0.06), rgba(255,255,255,0.04));
+}
+.sm-complete-head { display: flex; align-items: center; gap: 10px; }
+.sm-complete-check {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 0.8rem; font-weight: 700;
+  background: rgba(52,211,153,0.18); color: #34d399;
+}
+.sm-complete-title { font-size: 1rem; font-weight: 600; }
+.sm-complete-headline {
+  margin-top: 12px; font-size: 0.95rem; line-height: 1.5; color: rgba(255,255,255,0.9);
+}
+
+.sm-complete-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px; margin-top: 16px;
+}
+.sm-metric-box {
+  background: rgba(255,255,255,0.05); border-radius: 12px; padding: 12px 14px;
+}
+.sm-metric-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.5);
+}
+.sm-metric-val {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 1.35rem; font-weight: 500; margin-top: 4px; color: #34d399;
+}
+.sm-metric-unit { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-left: 2px; }
+.sm-metric-delta { font-size: 0.7rem; color: rgba(255,255,255,0.45); margin-top: 3px; }
+
+.sm-config { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.sm-config-item {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  background: rgba(255,255,255,0.06); border-radius: 7px; padding: 4px 9px;
+  font-family: 'Geist Mono', ui-monospace, monospace; font-size: 0.74rem;
+}
+.sm-config-key { color: rgba(255,255,255,0.5); }
+.sm-config-val { color: #fafafa; }
+
+.sm-learned { margin: 8px 0 0; padding-left: 18px; }
+.sm-learned li {
+  font-size: 0.85rem; line-height: 1.5; color: rgba(255,255,255,0.82); margin: 5px 0;
+}
+
+.sm-limit {
+  margin-top: 14px; font-size: 0.82rem; line-height: 1.5;
+  color: rgba(255,255,255,0.65);
+  border-left: 2px solid rgba(251,191,36,0.5); padding-left: 12px;
+}
+.sm-limit-tag {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #fbbf24; font-weight: 600; margin-right: 4px;
+}
+
+.sm-replay {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.sm-replay-headline {
+  font-size: 0.92rem; color: rgba(255,255,255,0.9); margin-top: 4px;
+}
+.sm-replay-headline strong { color: #34d399; font-weight: 600; }
+.sm-replay-detail {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 6px;
+}
+.sm-replay-note {
+  font-size: 0.82rem; font-style: italic; color: rgba(255,255,255,0.6);
+  margin-top: 8px; line-height: 1.5;
+}
