@@ -7,6 +7,11 @@ import {
   DECOMPOSE_SYSTEM, decomposeUser, DISTILL_SYSTEM, distillUser, SYNTH_SYSTEM, synthUser,
 } from './prompts.js';
 import { fallbackPlan } from './fallback.js';
+import * as cache from '../lib/cache.js';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Per-event pacing when REPLAYING a recorded run, so it still feels live during the demo.
+const REPLAY_DELAY = { stage: 450, queries: 250, search_start: 180, search_done: 650, plan: 120 };
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -84,6 +89,22 @@ export async function runPlan({ brief } = {}) {
  */
 export async function runPlanStream({ brief, emit = () => {} } = {}) {
   if (!brief || !brief.enriched_question) throw new Error('a confirmed brief is required');
+
+  // Record/replay: same brief -> replay the recorded research trace + plan (deterministic demo).
+  const ck = cache.key('planner.plan', { brief });
+  const hit = cache.get(ck);
+  if (hit) {
+    for (const e of hit.events) {
+      emit(e);
+      await sleep(REPLAY_DELAY[e.type] ?? 200);
+    }
+    return hit.result;
+  }
+  // Record every event we emit on this live run.
+  const recorded = [];
+  const realEmit = emit;
+  emit = (e) => { recorded.push(e); realEmit(e); };
+
   if (!openai) {
     const fb = fallbackPlan(brief);
     emit({ type: 'plan', plan: fb.plan });
@@ -97,6 +118,7 @@ export async function runPlanStream({ brief, emit = () => {} } = {}) {
   if (!queries.length) {
     const fb = fallbackPlan(brief);
     emit({ type: 'plan', plan: fb.plan });
+    cache.set(ck, { events: recorded, result: fb });
     return fb;
   }
   emit({ type: 'queries', queries });
@@ -129,5 +151,7 @@ export async function runPlanStream({ brief, emit = () => {} } = {}) {
     plan.research_sources = distilled.flatMap((d) => d.sources || []).slice(0, 8);
   }
   emit({ type: 'plan', plan });
-  return { plan, research: distilled, queries };
+  const result = { plan, research: distilled, queries };
+  cache.set(ck, { events: recorded, result });
+  return result;
 }
