@@ -227,7 +227,8 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
         body: JSON.stringify({ plan }),
       });
       if (!res.ok) throw new Error(`launch failed (${res.status})`);
-      const { runId } = await res.json();
+      const { runId, cached } = await res.json();
+      showToast(cached, cached ? 'Cache · replaying run' : 'Live · running swarm');
       patchActive((c) => ({
         ...c,
         messages: c.messages.map((m) =>
