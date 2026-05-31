@@ -222,8 +222,16 @@ function CompletionCard({ summary, metric }) {
   const learned = toArr(summary.learned);
   const replay = summary.replay || null;
 
-  const bestVal = best[metric];
-  const baseVal = summary.baseline?.[metric];
+  // The recording's summary keys may differ in case from the route's lowercased
+  // metric name — look the metric value up case-insensitively.
+  const findMetric = (obj) => {
+    if (!obj || !metric) return undefined;
+    if (obj[metric] !== undefined) return obj[metric];
+    const k = Object.keys(obj).find((key) => key.toLowerCase() === metric.toLowerCase());
+    return k ? obj[k] : undefined;
+  };
+  const bestVal = findMetric(best);
+  const baseVal = findMetric(summary.baseline);
   const metricUpper = (metric || '').replace(/_/g, ' ').toUpperCase();
 
   return (
