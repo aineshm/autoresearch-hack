@@ -72,6 +72,30 @@
   padding: 4px 0 10px;
 }
 
+/* current project + back to dashboard */
+.sidebar-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s var(--ease-out-cubic), color 0.15s ease;
+}
+.sidebar-project:hover { background: rgba(255, 255, 255, 0.07); color: #fafafa; }
+.sidebar-project-back { flex-shrink: 0; font-size: 1rem; }
+.sidebar-project-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.sidebar--collapsed .sidebar-project { justify-content: center; padding: 8px 0; }
+.sidebar--collapsed .sidebar-project-name { display: none; }
+
 /* new chat */
 .new-chat {
   display: flex;

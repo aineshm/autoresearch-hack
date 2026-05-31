@@ -145,6 +145,21 @@
   color: rgba(235, 235, 235, 0.6);
   max-width: 46ch;
 }
+.chat-data-chip {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #cfe9d6;
+  background: rgba(143, 224, 160, 0.08);
+  border: 1px solid rgba(143, 224, 160, 0.25);
+  border-radius: 999px;
+  padding: 6px 13px;
+}
+.chat-data-dot { width: 7px; height: 7px; border-radius: 50%; background: #8fe0a0; }
+.chat-empty-upload { margin-top: 24px; width: 100%; }
+.chat-empty-hint { margin-top: 10px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.4); }
 
 /* input */
 .chat-input-wrap {

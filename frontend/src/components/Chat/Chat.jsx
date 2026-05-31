@@ -6,6 +6,7 @@ import BriefCard from '../Brief/BriefCard';
 import PlanCard from '../Plan/PlanCard';
 import ResearchPanel from '../Plan/ResearchPanel';
 import RunningPanel from '../Plan/RunningPanel';
+import Upload from '../Project/Upload';
 import { api, getToken } from '../../api';
 import './Chat.css';
 
@@ -20,7 +21,7 @@ const newConversation = () => ({
   phase: 'idle', // idle | interviewing | confirming | locked
 });
 
-export default function Chat({ user, onLogout }) {
+export default function Chat({ user, project, onUpdateProject, onBack, onLogout }) {
   const [conversations, setConversations] = useState(() => [newConversation()]);
   const [activeId, setActiveId] = useState(conversations[0].id);
   const [input, setInput] = useState('');
@@ -82,7 +83,8 @@ export default function Chat({ user, onLogout }) {
   async function advance(convId, goal, transcript) {
     setSending(true);
     try {
-      const step = await api.briefNext({ goal, transcript }, getToken());
+      const dataset = project?.hasData ? project.dataFacts : undefined;
+      const step = await api.briefNext({ goal, transcript, dataset }, getToken());
       patchConv(convId, (c) => {
         if (step.action === 'finalize') {
           return { ...c, phase: 'confirming', messages: [...c.messages, { role: 'assistant', kind: 'brief', brief: step.brief }] };
@@ -237,6 +239,8 @@ export default function Chat({ user, onLogout }) {
 
       <Sidebar
         user={user}
+        project={project}
+        onBack={onBack}
         collapsed={collapsed}
         onToggle={() => setCollapsed((v) => !v)}
         conversations={conversations}
@@ -251,11 +255,27 @@ export default function Chat({ user, onLogout }) {
           {empty ? (
             <div className="chat-empty">
               <img src="/autolab-logo.svg" alt="" className="chat-empty-logo" />
-              <h1 className="chat-empty-title">Hi {firstName}, what problem should AutoLab solve?</h1>
+              <h1 className="chat-empty-title">
+                {project ? project.name : `Hi ${firstName}`}
+                {!project && ', what problem should AutoLab solve?'}
+              </h1>
               <p className="chat-empty-sub">
-                Describe your goal and your data. I’ll ask a few quick questions, then write the brief:
+                Describe your goal and I’ll ask a few quick questions, then write the brief:
                 the exact problem, how it should have been asked.
               </p>
+              {project && project.hasData && (
+                <div className="chat-data-chip">
+                  <span className="chat-data-dot" />
+                  Data ready: {project.datasetName || 'dataset'}
+                  {project.dataFacts?.n_rows ? ` · ${project.dataFacts.n_rows} rows × ${project.dataFacts.n_columns} cols` : ''}
+                </div>
+              )}
+              {project && !project.hasData && (
+                <div className="chat-empty-upload">
+                  <Upload projectId={project.id} onUploaded={(p) => onUpdateProject(p)} />
+                  <p className="chat-empty-hint">Optional, but uploading your data grounds the brief in your real columns.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="chat-thread">

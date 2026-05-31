@@ -1,0 +1,37 @@
+.upload {
+  width: 100%;
+  max-width: 520px;
+  margin: 8px auto 0;
+  padding: 32px 24px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease-out-quint), background 0.18s var(--ease-out-quint), transform 0.08s ease;
+}
+.upload:hover { border-color: rgba(255, 255, 255, 0.36); background: rgba(255, 255, 255, 0.05); }
+.upload--drag { border-color: #fafafa; background: rgba(255, 255, 255, 0.08); transform: scale(1.01); }
+.upload--busy { cursor: default; }
+
+.upload-icon { color: rgba(255, 255, 255, 0.7); display: grid; place-items: center; margin-bottom: 12px; }
+.upload-title { font-size: 1rem; font-weight: 600; color: #fafafa; }
+.upload-sub {
+  margin-top: 7px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(235, 235, 235, 0.55);
+  max-width: 42ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.upload-error { margin-top: 12px; font-size: 0.82rem; color: #ff9b9b; }
+
+.upload-spin {
+  display: inline-block;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #fafafa;
+  animation: spin 0.7s linear infinite;
+}

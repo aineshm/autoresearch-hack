@@ -30,6 +30,12 @@ export const api = {
   // Brief agent (L1 intake): one interview step → { action:'ask', question } | { action:'finalize', brief }
   briefStatus: (token) => request('/brief/status', { token }),
   briefNext: (payload, token) => request('/brief/next', { method: 'POST', body: payload, token }),
+  // Projects: each has its own uploaded dataset + chats
+  projectsList: (token) => request('/projects', { token }),
+  projectCreate: (name, token) => request('/projects', { method: 'POST', body: { name }, token }),
+  projectGet: (id, token) => request(`/projects/${id}`, { token }),
+  projectUpload: (id, filename, csv, token) =>
+    request(`/projects/${id}/upload`, { method: 'POST', body: { filename, csv }, token }),
   // Planner: confirmed brief → web research → plan (what TYPE of variables to hunt)
   plannerPlan: (brief, token) => request('/planner/plan', { method: 'POST', body: { brief }, token }),
   // Streaming planner — calls onEvent for each NDJSON event (stage / queries / search / plan);

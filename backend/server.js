@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 import db from './db.js';
 import briefRouter from './brief/route.js';
 import plannerRouter from './planner/route.js';
+import projectsRouter from './projects/route.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
@@ -28,7 +29,7 @@ data they have, and the metric that defines success.`;
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '12mb' })); // CSV uploads ride in the JSON body
 
 // --- helpers ---
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -147,10 +148,35 @@ app.post('/api/chat', authRequired, async (req, res) => {
   }
 });
 
-// Brief agent — adaptive interview that turns a fuzzy goal into the enriched brief.
-app.use('/api/brief', authRequired, briefRouter);
-// Planner — confirmed brief → web research → plan (what TYPE of variables to hunt).
-app.use('/api/planner', authRequired, plannerRouter);
+// Agent APIs accept EITHER a JWT (the web app) OR a shared API key (external callers via ngrok).
+const AUTOLAB_API_KEY = process.env.AUTOLAB_API_KEY || '';
+function keyOrAuth(req, res, next) {
+  const key = req.headers['x-api-key'] || req.query.api_key;
+  if (AUTOLAB_API_KEY && key === AUTOLAB_API_KEY) {
+    req.auth = { sub: 'api-key', via: 'api-key' };
+    return next();
+  }
+  return authRequired(req, res, next);
+}
+
+// Public-ish discovery for external callers.
+app.get('/api/info', (_req, res) => res.json({
+  service: 'autolab',
+  auth: 'send header "x-api-key: <AUTOLAB_API_KEY>" (or a Bearer JWT)',
+  endpoints: {
+    'POST /api/brief/next': '{ goal, transcript? } -> { action:"ask", question } | { action:"finalize", brief }',
+    'POST /api/brief/simulate': '{ goal } -> { questions, transcript, brief } (auto-answered)',
+    'POST /api/planner/plan': '{ brief } -> { plan, research, queries }',
+    'POST /api/planner/plan/stream': '{ brief } -> NDJSON live research events',
+  },
+}));
+
+// Brief agent: adaptive interview that turns a fuzzy goal into the enriched brief.
+app.use('/api/brief', keyOrAuth, briefRouter);
+// Planner: confirmed brief -> web research -> plan (what TYPE of variables to hunt).
+app.use('/api/planner', keyOrAuth, plannerRouter);
+// Projects: per-user projects, each with its own uploaded dataset + chats (web app, JWT only).
+app.use('/api/projects', authRequired, projectsRouter);
 
 app.listen(PORT, () => {
   console.log(`AutoLab backend listening on http://localhost:${PORT}`);

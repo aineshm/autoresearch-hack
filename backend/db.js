@@ -19,6 +19,17 @@ db.exec(`
     password_hash TEXT    NOT NULL,
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS projects (
+    id           TEXT    PRIMARY KEY,
+    user_id      INTEGER NOT NULL,
+    name         TEXT    NOT NULL,
+    kind         TEXT    NOT NULL DEFAULT 'custom',   -- 'demo' | 'custom'
+    has_data     INTEGER NOT NULL DEFAULT 0,
+    dataset_name TEXT,
+    data_facts   TEXT,                                 -- JSON
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 export default db;
