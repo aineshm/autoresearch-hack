@@ -215,64 +215,93 @@ function ExperimentLedger({ experiments, metric }) {
 // ── Card: Completion summary (shown when the run is done) ─────────────────────
 
 function CompletionCard({ summary, metric }) {
+  const [showReport, setShowReport] = useState(false);
   if (!summary) return null;
   const best = summary.best || {};
   const cfg = best.config || {};
   const learned = toArr(summary.learned);
   const replay = summary.replay || null;
 
+  const bestVal = best[metric];
+  const baseVal = summary.baseline?.[metric];
+  const metricUpper = (metric || '').replace(/_/g, ' ').toUpperCase();
+
   return (
-    <div className="sm-card sm-complete">
-      <div className="sm-complete-head">
-        <span className="sm-complete-check" aria-hidden="true">✓</span>
-        <span className="sm-complete-title">Research complete</span>
-        {summary.verdict && (
-          <span className={`sm-verdict ${verdictClass(summary.verdict)}`}>{summary.verdict}</span>
-        )}
+    <div className="sm-card sm-deliverable">
+      {/* ── Hero: what AutoLab delivered ── */}
+      <div className="sm-deliv-tag">
+        <span className="sm-deliv-check" aria-hidden="true">✓</span>
+        Delivered by AutoLab
       </div>
 
-      {summary.headline && <div className="sm-complete-headline">{summary.headline}</div>}
+      {summary.headline && <div className="sm-deliv-headline">{summary.headline}</div>}
 
-      <div className="sm-complete-metrics">
-        {best[metric] !== undefined && (
-          <div className="sm-metric-box">
-            <div className="sm-metric-label">{metric}</div>
-            <div className="sm-metric-val">{fmtBest(best[metric])}</div>
-            {summary.baseline?.[metric] !== undefined && (
-              <div className="sm-metric-delta">from {fmtBest(summary.baseline[metric])} baseline</div>
+      {/* The hero number: baseline → best lift */}
+      {bestVal !== undefined && (
+        <div className="sm-deliv-hero">
+          <div className="sm-deliv-hero-metric">{metricUpper}</div>
+          <div className="sm-deliv-hero-lift">
+            {baseVal !== undefined && (
+              <>
+                <span className="sm-deliv-from">{fmtBest(baseVal)}</span>
+                <span className="sm-deliv-arrow" aria-hidden="true">→</span>
+              </>
             )}
+            <span className="sm-deliv-to">{fmtBest(bestVal)}</span>
           </div>
-        )}
+          {baseVal !== undefined && (
+            <div className="sm-deliv-hero-note">
+              from a baseline that never fired — no human tuned this
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Supporting stats */}
+      <div className="sm-deliv-stats">
         {best.false_alarm_rate_per_hr !== undefined && (
-          <div className="sm-metric-box">
-            <div className="sm-metric-label">false alarms</div>
-            <div className="sm-metric-val">{best.false_alarm_rate_per_hr.toFixed(2)}<span className="sm-metric-unit">/hr</span></div>
+          <div className="sm-deliv-stat">
+            <span className="sm-deliv-stat-val">{best.false_alarm_rate_per_hr.toFixed(2)}<span className="sm-deliv-stat-unit">/hr</span></span>
+            <span className="sm-deliv-stat-label">false alarms</span>
           </div>
         )}
         {best.detection_latency_ms !== undefined && (
-          <div className="sm-metric-box">
-            <div className="sm-metric-label">latency</div>
-            <div className="sm-metric-val">{best.detection_latency_ms}<span className="sm-metric-unit">ms</span></div>
+          <div className="sm-deliv-stat">
+            <span className="sm-deliv-stat-val">{best.detection_latency_ms}<span className="sm-deliv-stat-unit">ms</span></span>
+            <span className="sm-deliv-stat-label">detection latency</span>
           </div>
         )}
         {summary.experiments_run !== undefined && (
-          <div className="sm-metric-box">
-            <div className="sm-metric-label">experiments</div>
-            <div className="sm-metric-val">{summary.experiments_run}</div>
-            {summary.passed_gate !== undefined && (
-              <div className="sm-metric-delta">{summary.passed_gate} passed the gate</div>
-            )}
+          <div className="sm-deliv-stat">
+            <span className="sm-deliv-stat-val">{summary.experiments_run}</span>
+            <span className="sm-deliv-stat-label">{summary.passed_gate !== undefined ? `experiments · ${summary.passed_gate} passed` : 'experiments'}</span>
           </div>
         )}
       </div>
 
+      {/* The proof: held-out flight replay */}
+      {replay && (
+        <div className="sm-deliv-proof">
+          <div className="sm-deliv-proof-label">Proof · held-out flight</div>
+          <div className="sm-deliv-proof-headline">
+            Caught <strong>{replay.fault_type?.replace(/_/g, ' ')}</strong>{' '}
+            <strong className="sm-deliv-proof-lat">{replay.latency_ms}ms</strong> after onset
+          </div>
+          <div className="sm-deliv-proof-detail">
+            {replay.flight} · onset {replay.fault_onset_s}s → detected {replay.detected_at_s}s
+            {replay.anomaly_score !== undefined && ` · score ${replay.anomaly_score} crossed ${replay.threshold}`}
+          </div>
+        </div>
+      )}
+
+      {/* The deliverable: winning configuration */}
       {Object.keys(cfg).length > 0 && (
         <>
-          <div className="sm-section-label">Winning configuration</div>
+          <div className="sm-section-label">The model AutoLab built</div>
           <div className="sm-config">
             {Object.entries(cfg).map(([k, v]) => (
               <span className="sm-config-item" key={k}>
-                <span className="sm-config-key">{k}</span>
+                <span className="sm-config-key">{k.replace(/_/g, ' ')}</span>
                 <span className="sm-config-val">{String(v)}</span>
               </span>
             ))}
@@ -280,33 +309,27 @@ function CompletionCard({ summary, metric }) {
         </>
       )}
 
-      {learned.length > 0 && (
-        <>
-          <div className="sm-section-label">What the research agent learned</div>
-          <ul className="sm-learned">
-            {learned.map((l, i) => <li key={i}>{l}</li>)}
-          </ul>
-        </>
+      {/* Expandable full report */}
+      {(learned.length > 0 || summary.honest_limit) && (
+        <button type="button" className="sm-deliv-toggle" onClick={() => setShowReport((s) => !s)}>
+          {showReport ? '▾ Hide what the agent learned' : '▸ What the agent learned & honest limits'}
+        </button>
       )}
-
-      {summary.honest_limit && (
-        <div className="sm-limit">
-          <span className="sm-limit-tag">Honest limit</span> {summary.honest_limit}
-        </div>
-      )}
-
-      {replay && (
-        <div className="sm-replay">
-          <div className="sm-section-label">Held-out flight replay</div>
-          <div className="sm-replay-headline">
-            Caught <strong>{replay.fault_type?.replace(/_/g, ' ')}</strong> in{' '}
-            <strong>{replay.latency_ms}ms</strong> after onset
-          </div>
-          <div className="sm-replay-detail">
-            {replay.flight} · onset {replay.fault_onset_s}s → detected {replay.detected_at_s}s
-            {replay.anomaly_score !== undefined && ` · score ${replay.anomaly_score} > ${replay.threshold}`}
-          </div>
-          {replay.note && <div className="sm-replay-note">{replay.note}</div>}
+      {showReport && (
+        <div className="sm-deliv-report">
+          {learned.length > 0 && (
+            <>
+              <div className="sm-section-label">What the research agent learned</div>
+              <ul className="sm-learned">
+                {learned.map((l, i) => <li key={i}>{l}</li>)}
+              </ul>
+            </>
+          )}
+          {summary.honest_limit && (
+            <div className="sm-limit">
+              <span className="sm-limit-tag">Honest limit</span> {summary.honest_limit}
+            </div>
+          )}
         </div>
       )}
     </div>
