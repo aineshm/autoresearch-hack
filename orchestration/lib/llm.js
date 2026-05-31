@@ -2,13 +2,18 @@ import OpenAI from 'openai';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-const SYSTEM = `You are L3, the Synthesizer in AutoLab. You read the research goal and \
-one pass of experiment results plus deterministic evidence, then decide the next move. \
-Trust the provided numeric evidence; do not invent metrics. Output ONLY JSON matching: \
-{ verdict: one of CONTINUE|RETRY|PIVOT|COMMIT|ESCALATE, checks: { overfit:{ok,evidence}, \
-stagnation:{ok,evidence} }, changes: [{target,action,field?,value?,reason}], rationale, \
-next_hypotheses: [] }. COMMIT only if success_criteria is met. RETRY for fixable issues \
-(overfit, bad config). PIVOT/ESCALATE if the path is dead or mis-scoped. \
+const SYSTEM = `You are the Research Judge in AutoLab — an introspection layer over an \
+autonomous ML experiment swarm. You read the research goal and the swarm's experiment \
+history (each experiment has one metric value + a keep/discard/crash status) plus \
+deterministic evidence (best-so-far, plateau, crash rate, repeated ledger failures). \
+Decide the next move. Trust the provided numbers; never invent metrics. \
+Output ONLY JSON matching: { verdict: one of CONTINUE|RETRY|PIVOT|COMMIT|ESCALATE, \
+checks: { plateau:{ok,evidence}, crash:{ok,evidence}, stagnation:{ok,evidence} }, \
+changes: [{target,action,field?,value?,reason}], rationale, next_hypotheses: [] }. \
+COMMIT when the goal metric is reached. PIVOT when progress has plateaued — steer toward \
+a new family of approaches. ESCALATE when crash rate is high or the path is dead/mis-scoped. \
+CONTINUE/RETRY when the current direction is still improving. \
+For each check, ok=true means HEALTHY (no problem); ok=false means the issue fired. \
 Every \`ok\` field MUST be a JSON boolean (true or false), never a string.`;
 
 const VERDICTS = ['CONTINUE', 'RETRY', 'PIVOT', 'COMMIT', 'ESCALATE'];
@@ -42,20 +47,31 @@ export function normalizeDirective(raw, evidence) {
   };
 }
 
+// Build the prompt payload from L2 single-metric evidence (rows + ledger),
+// defensively so a shape surprise can never throw before the try/catch.
+function evidenceToPayload(program, evidence) {
+  const rows = Array.isArray(evidence?.rows) ? evidence.rows : [];
+  const attempts = Array.isArray(evidence?.ledger?.attempts) ? evidence.ledger.attempts : [];
+  return {
+    metric: program?.metric ?? 'val_bpb',
+    lower_is_better: program?.lowerIsBetter ?? true,
+    program: (program?.program_md ?? '').slice(0, 800),
+    pass: evidence?.pass ?? 0,
+    best: evidence?.best ?? null,
+    plateau: evidence?.plateau ?? false,
+    crash_rate: evidence?.crashRate ?? 0,
+    history: evidence?.history ?? [],
+    experiments: rows.map((r) => ({
+      commit: r.commit, value: r.value, status: r.status, description: r.description,
+    })),
+    ledger_failures: attempts.filter((a) => a.outcome === 'failure').map((a) => a.approach),
+  };
+}
+
 export async function llmDirective({ program, evidence }) {
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const user = JSON.stringify({
-    goal: program.goal,
-    success_criteria: program.success_criteria,
-    direction: program.direction,
-    pass: evidence.pass,
-    gaps: evidence.gaps,
-    plateau: evidence.plateau,
-    history: evidence.history,
-    candidates: evidence.results.candidates.map((c) => ({ id: c.id, metrics: c.metrics, status: c.status, config: c.config })),
-    run_anomalies: evidence.runs.flatMap((r) => r.anomalies),
-  });
   try {
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const user = JSON.stringify(evidenceToPayload(program, evidence));
     const completion = await client.chat.completions.create({
       model: MODEL,
       response_format: { type: 'json_object' },

@@ -112,6 +112,9 @@ class ModalExperimentRunner:
             timeout=sandbox_timeout,
             workdir="/repo",
         )
+        sandbox_id = getattr(sandbox, "object_id", "?")
+        print(f"[modal] fresh sandbox {sandbox_id} created for experiment "
+              f"(repo={repo_path.name}, cmd={command!r})", flush=True)
         try:
             process = sandbox.exec("bash", "-c", command, timeout=timeout, text=True)
             stdout = process.stdout.read() if process.stdout else ""
@@ -127,5 +130,6 @@ class ModalExperimentRunner:
             raise TimeoutError(f"Modal sandbox timed out after {timeout}s") from exc
         finally:
             sandbox.terminate()
+            print(f"[modal] sandbox {sandbox_id} terminated", flush=True)
 
         return (exit_code, output)
