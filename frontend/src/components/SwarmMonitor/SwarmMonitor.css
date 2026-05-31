@@ -1,0 +1,373 @@
+/* SwarmMonitor — live research monitoring cards
+   All classes prefixed sm- to avoid collisions.
+   Global keyframes (card-pop, spin, orb-glow, shimmer) come from index.css.
+   We define only the ones unique to this component.
+*/
+
+@keyframes sm-sparkline-draw {
+  from { stroke-dashoffset: 200; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes sm-row-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Outer wrapper ───────────────────────────────────────────────────── */
+.sm-root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 92%;
+}
+
+/* ── Shared card shell (dark-glass) ─────────────────────────────────── */
+.sm-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+  padding: 18px 20px;
+  animation: card-pop 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Stagger sub-cards */
+.sm-card:nth-child(2) { animation-delay: 0.06s; }
+.sm-card:nth-child(3) { animation-delay: 0.12s; }
+
+/* ── Pending / empty state ───────────────────────────────────────────── */
+.sm-pending {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  border-bottom-left-radius: 6px;
+  animation: card-pop 0.4s cubic-bezier(0.23, 1, 0.32, 1) both;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+.sm-pending-orb {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  animation: orb-glow 1.6s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CARD A — Run header
+   ═══════════════════════════════════════════════════════════════════════ */
+.sm-header { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+
+/* spinning conic-gradient orb (mirrors RunningPanel) */
+.sm-orb {
+  position: relative;
+  width: 42px; height: 42px; flex-shrink: 0;
+  display: grid; place-items: center;
+}
+.sm-orb-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(255,255,255,0.06), #ffffff 78%, rgba(255,255,255,0.06));
+  -webkit-mask: radial-gradient(circle 14px at center, transparent 95%, #000 0);
+  mask: radial-gradient(circle 14px at center, transparent 95%, #000 0);
+  animation: spin 1.1s linear infinite, orb-glow 2s ease-in-out infinite;
+}
+.sm-orb-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #fafafa;
+  animation: orb-glow 1.4s ease-in-out infinite;
+}
+
+.sm-header-body { flex: 1; min-width: 0; }
+.sm-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fafafa;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sm-subtitle {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 10px;
+}
+
+/* stat pills row */
+.sm-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sm-pill {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.sm-pill--gen {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+}
+.sm-pill--best {
+  background: rgba(52, 211, 153, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.22);
+}
+.sm-pill--best-none {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+}
+.sm-pill--keep {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+}
+.sm-pill--discard {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+.sm-pill--crash {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+
+/* sparkline */
+.sm-sparkline {
+  margin-top: 14px;
+}
+.sm-sparkline-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.32);
+  margin-bottom: 5px;
+}
+.sm-sparkline-svg {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: 38px;
+  overflow: visible;
+}
+.sm-sparkline-area {
+  fill: url(#sm-spark-grad);
+  opacity: 0.35;
+}
+.sm-sparkline-line {
+  fill: none;
+  stroke: #34d399;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: sm-sparkline-draw 0.9s var(--ease-out-quint) 0.3s both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CARD B — Research Judge (introspection verdict)
+   ═══════════════════════════════════════════════════════════════════════ */
+.sm-judge-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.sm-judge-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fafafa;
+}
+.sm-badge {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.sm-verdict {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.sm-verdict--PIVOT, .sm-verdict--RETRY {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+}
+.sm-verdict--CONTINUE {
+  background: rgba(52, 211, 153, 0.16);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.24);
+}
+.sm-verdict--COMMIT {
+  background: rgba(147, 197, 253, 0.16);
+  color: #93c5fd;
+  border: 1px solid rgba(147, 197, 253, 0.24);
+}
+.sm-verdict--ESCALATE {
+  background: rgba(248, 113, 113, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.24);
+}
+.sm-verdict--unknown {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sm-rationale {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgba(235, 235, 235, 0.78);
+  margin-bottom: 14px;
+}
+
+/* checks list */
+.sm-checks { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.sm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.845rem;
+  line-height: 1.45;
+}
+.sm-check-icon {
+  flex-shrink: 0;
+  width: 16px; height: 16px;
+  display: grid; place-items: center;
+  font-size: 0.8rem;
+  margin-top: 1px;
+}
+.sm-check-icon--ok { color: #34d399; }
+.sm-check-icon--fail { color: #f87171; }
+.sm-check-name {
+  font-weight: 600;
+  color: #e6e6e6;
+  margin-right: 4px;
+}
+.sm-check-evidence { color: rgba(255, 255, 255, 0.5); }
+
+/* next hypotheses */
+.sm-section-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 7px;
+}
+.sm-hypotheses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sm-hypothesis {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 0.855rem;
+  line-height: 1.45;
+  color: rgba(235, 235, 235, 0.72);
+}
+.sm-hypothesis::before {
+  content: '→';
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CARD C — Experiment ledger
+   ═══════════════════════════════════════════════════════════════════════ */
+.sm-ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sm-ledger-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fafafa;
+}
+.sm-ledger-count {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* rows */
+.sm-rows { display: flex; flex-direction: column; gap: 5px; }
+.sm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  animation: sm-row-in 0.22s var(--ease-out-quint) both;
+}
+.sm-row-gen {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+  width: 26px;
+  text-align: right;
+}
+.sm-row-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.845rem;
+  color: #e6e6e6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sm-row-commit {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.28);
+  flex-shrink: 0;
+}
+.sm-row-value {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 48px;
+  text-align: right;
+}
+.sm-row-value--keep    { color: #34d399; }
+.sm-row-value--discard { color: #fbbf24; }
+.sm-row-value--crash   { color: #f87171; }
+
+.sm-row-status {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.sm-row-status--keep    { background: rgba(52, 211, 153, 0.14);  color: #34d399; }
+.sm-row-status--discard { background: rgba(251, 191, 36, 0.14);  color: #fbbf24; }
+.sm-row-status--crash   { background: rgba(248, 113, 113, 0.14); color: #f87171; }

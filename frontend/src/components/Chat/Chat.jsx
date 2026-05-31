@@ -6,6 +6,7 @@ import BriefCard from '../Brief/BriefCard';
 import PlanCard from '../Plan/PlanCard';
 import ResearchPanel from '../Plan/ResearchPanel';
 import RunningPanel from '../Plan/RunningPanel';
+import SwarmMonitor from '../SwarmMonitor/SwarmMonitor';
 import Upload from '../Project/Upload';
 import { api, getToken } from '../../api';
 import './Chat.css';
@@ -317,6 +318,14 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
                     <div key={i} className="msg msg--assistant">
                       <div className="msg-role">AutoLab</div>
                       <RunningPanel />
+                    </div>
+                  );
+                }
+                if (m.kind === 'monitor') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <SwarmMonitor runId={m.runId} />
                     </div>
                   );
                 }

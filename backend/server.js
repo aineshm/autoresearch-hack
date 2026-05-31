@@ -7,6 +7,7 @@ import db from './db.js';
 import briefRouter from './brief/route.js';
 import plannerRouter from './planner/route.js';
 import projectsRouter from './projects/route.js';
+import monitorRouter from './monitor/route.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
@@ -177,6 +178,8 @@ app.use('/api/brief', keyOrAuth, briefRouter);
 app.use('/api/planner', keyOrAuth, plannerRouter);
 // Projects: per-user projects, each with its own uploaded dataset + chats (web app, JWT only).
 app.use('/api/projects', authRequired, projectsRouter);
+// Monitor: live status of a running autoresearch swarm (no auth gate for demo).
+app.use('/api/monitor', monitorRouter);
 
 app.listen(PORT, () => {
   console.log(`AutoLab backend listening on http://localhost:${PORT}`);
