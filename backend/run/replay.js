@@ -2,6 +2,7 @@
 // per generation), progressively write a curated recorded run into a fresh run dir.
 // The SwarmMonitor reads the run dir exactly the same way — it cannot tell replay
 // from live. One generation is appended every STEP_MS so the monitor shows it evolve.
+// When the last generation is written, a summary.json is dropped to mark the run DONE.
 //
 // No venv, no Modal, no OpenAI, no Python: a cache-hit launch runs on the backend alone.
 import { readFileSync, writeFileSync, mkdirSync, appendFileSync, existsSync } from 'node:fs';
@@ -10,7 +11,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RECORDING = join(__dirname, 'recordings', 'demo-arc.json');
-const STEP_MS = 2500; // matches the monitor's ~2s poll so each generation appears live
+// Pace generations so the whole L2/L3 phase finishes well under the 1-minute demo
+// budget while still visibly streaming. ~1.6s/gen → ~8s for the 5-generation arc.
+// Override with REPLAY_STEP_MS if you want it slower/faster.
+const STEP_MS = Number(process.env.REPLAY_STEP_MS) || 1600;
 
 const TSV_HEADER = 'commit\tval_bpb\tmemory_gb\tstatus\tdescription';
 
@@ -43,6 +47,14 @@ export function startReplay(runDir) {
           writeFileSync(
             join(runDir, 'directives', `pass-${pass}.json`),
             JSON.stringify(gen.directive, null, 2),
+            'utf8',
+          );
+        }
+        // After the LAST generation, drop the done marker + final report.
+        if (i === gens.length - 1 && rec.summary) {
+          writeFileSync(
+            join(runDir, 'summary.json'),
+            JSON.stringify(rec.summary, null, 2),
             'utf8',
           );
         }

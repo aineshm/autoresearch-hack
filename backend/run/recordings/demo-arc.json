@@ -1,72 +1,109 @@
 {
-  "_comment": "Curated demo run for instant replay. An improving-then-PIVOT arc: the metric improves for a few generations, the Research Judge keeps CONTINUE-ing, then detects a plateau and PIVOTs to a new approach that breaks through. No real compute — the replay writer appends these generations one at a time so the monitor shows it evolving live.",
-  "metric": "val_bpb",
-  "program_md": "# Autoresearch run\n\n## Goal\nMinimize val_bpb by tuning the optimizer and regularization.\n\n## Experiment contract\nEdit `train.py`. Run with `python train.py`. The metric is `val_bpb` (lower is better).\n",
+  "_comment": "Real AutoLab research output: ALFA UAV early-warning fault detector. Higher-is-better F1 (maximize) under a FAR<=2.0/hr hard gate. Each replayed generation = the best result of a round, so the ledger shows the real arc baseline(0.000) -> 0.667 -> 0.667 -> 0.667 -> 0.800. The directive at each step is the real L3 synthesis (EXPLORE x3 -> EXPLOIT -> COMMIT). A final 'summary' block drives the completion card.",
+  "metric": "event_level_F1",
+  "lowerIsBetter": false,
+  "program_md": "# Early-warning fault detector for autonomous UAV flights\n\n## Goal\nFrom real labeled flight logs (ALFA, 47 flights), build an early-warning system that flags flights heading toward engine-failure or control-surface faults BEFORE they become dangerous. Recall-heavy; warn as early as possible.\n\n## Experiment contract\nThe metric is `event_level_F1` (higher is better). Hard gate: false_alarm_rate <= 2.0 per flight hour. Also minimize detection latency.\n",
   "generations": [
     {
-      "result": { "commit": "a1b2c3d", "value": 1.000000, "memory_gb": 10.0, "status": "keep", "description": "baseline" },
+      "result": { "commit": "baseline0", "value": 0.000, "memory_gb": 0.0, "status": "keep", "description": "real baseline — default config on the real validation set" },
       "directive": {
         "pass": 1, "verdict": "CONTINUE",
         "checks": {
-          "plateau": { "ok": true, "evidence": "Only the baseline exists; no plateau possible yet." },
-          "crash": { "ok": true, "evidence": "Crash rate 0." },
-          "stagnation": { "ok": true, "evidence": "No repeated failures in the ledger." }
+          "false_alarm_gate": { "ok": true, "evidence": "Baseline FAR 0.00/hr — within the 2.0/hr limit." },
+          "plateau": { "ok": true, "evidence": "Only the baseline exists; nothing to plateau on yet." },
+          "stagnation": { "ok": true, "evidence": "No repeated approaches in the ledger." }
         },
-        "rationale": "Baseline established at 1.000. Direction is aligned with the goal; proceed to tune the optimizer.",
-        "next_hypotheses": ["Lower the learning rate to 0.04", "Add a cosine schedule"]
+        "rationale": "The default fixed-threshold detector NEVER FIRES on this data (F1=0.000, latency=never). An adaptive threshold calibrated to the training distribution is the obvious first lever. Seed round 1 with residual features and short windows based on domain priors for actuator-fault detection.",
+        "next_hypotheses": ["adaptive_3sigma threshold (vs fixed)", "residuals_only features", "short windows (30-50)"]
       }
     },
     {
-      "result": { "commit": "b2c3d4e", "value": 0.910000, "memory_gb": 10.0, "status": "keep", "description": "lower learning rate to 0.04" },
+      "result": { "commit": "7a7971c4", "value": 0.667, "memory_gb": 0.0, "status": "keep", "description": "Round 1 best — window=30, residuals_only, adaptive_3sigma, per_flight (FAR 0.00/hr, lat 1269ms)" },
       "directive": {
         "pass": 2, "verdict": "CONTINUE",
         "checks": {
-          "plateau": { "ok": true, "evidence": "Improved 1.000 -> 0.910; clearly still descending." },
-          "crash": { "ok": true, "evidence": "Crash rate 0." },
-          "stagnation": { "ok": true, "evidence": "Fresh improvement, no repeats." }
+          "false_alarm_gate": { "ok": true, "evidence": "7/7 configs passed the FAR gate (0.00/hr)." },
+          "plateau": { "ok": true, "evidence": "Huge jump 0.000 -> 0.667 — adaptive threshold was the key. Still climbing." },
+          "stagnation": { "ok": true, "evidence": "First real round; broad seed configs." }
         },
-        "rationale": "The lower LR helped (1.000 -> 0.910). The optimizer direction is paying off; keep pushing on the schedule.",
-        "next_hypotheses": ["Add a cosine LR schedule", "Warmup for the first 5% of steps"]
+        "rationale": "adaptive_3sigma + residuals_only consistently passes the gate at F1=0.667. percentile_99 underperforms. The residuals_plus_derivatives feature set and isolation_forest model are still under-explored.",
+        "next_hypotheses": ["residuals_plus_derivatives across window lengths", "isolation_forest with global normalization", "vary normalization (per_flight vs global)"]
       }
     },
     {
-      "result": { "commit": "c3d4e5f", "value": 0.882000, "memory_gb": 10.0, "status": "keep", "description": "add cosine LR schedule + warmup" },
+      "result": { "commit": "644055b1", "value": 0.667, "memory_gb": 0.0, "status": "discard", "description": "Round 2 best — window=100, residuals_plus_derivatives, global (FAR 0.00/hr, lat 629ms) — no F1 gain" },
       "directive": {
         "pass": 3, "verdict": "CONTINUE",
         "checks": {
-          "plateau": { "ok": true, "evidence": "0.910 -> 0.882; still improving, gains shrinking." },
-          "crash": { "ok": true, "evidence": "Crash rate 0." },
-          "stagnation": { "ok": true, "evidence": "No repeated approaches." }
+          "false_alarm_gate": { "ok": true, "evidence": "6/6 passed the FAR gate." },
+          "plateau": { "ok": false, "evidence": "F1 stuck at 0.667 for a second round — derivatives + longer windows did NOT help." },
+          "stagnation": { "ok": true, "evidence": "Still exploring distinct config families." }
         },
-        "rationale": "Cosine schedule gave a smaller but real gain (0.910 -> 0.882). The optimizer lever is nearly exhausted; one more before considering a pivot.",
-        "next_hypotheses": ["Increase batch size", "Tune weight decay"]
+        "rationale": "F1 is plateauing at 0.667 and residuals_plus_derivatives is not improving it. Latency varies widely (629-3101ms) so there is room to optimize speed. Try percentile_99 and isolation_forest combinations to break the F1 ceiling while keeping FAR controlled.",
+        "next_hypotheses": ["percentile_99 with controlled FAR", "isolation_forest across feature sets", "shorter windows again"]
       }
     },
     {
-      "result": { "commit": "d4e5f6a", "value": 0.880000, "memory_gb": 10.0, "status": "discard", "description": "increase batch size to 256" },
+      "result": { "commit": "7beb6602", "value": 0.667, "memory_gb": 0.0, "status": "discard", "description": "Round 3 best — window=30, residuals_plus_derivatives, isolation_forest, percentile_99 (1 config FAILED the FAR gate at 273/hr)" },
       "directive": {
         "pass": 4, "verdict": "PIVOT",
         "checks": {
-          "plateau": { "ok": false, "evidence": "0.882 -> 0.880 over the last two generations: improvement < 0.005. The optimizer path has plateaued." },
-          "crash": { "ok": true, "evidence": "Crash rate 0." },
-          "stagnation": { "ok": true, "evidence": "No repeated failures yet, but optimizer tweaks are returning diminishing gains." }
+          "false_alarm_gate": { "ok": false, "evidence": "percentile_99 produced a config at FAR 273.14/hr — FAILED the 2.0/hr gate. percentile_99 is risky." },
+          "plateau": { "ok": false, "evidence": "Third round still at 0.667; exploration has not cracked the ceiling." },
+          "stagnation": { "ok": true, "evidence": "Coverage is broad but converging on what works: adaptive_3sigma + residuals_only." }
         },
-        "rationale": "Optimizer tuning has plateaued (0.882 -> 0.880). Pivot away from optimizer knobs toward regularization, which the plan flagged as high-value and is so far unexplored.",
-        "next_hypotheses": ["Add dropout 0.1", "Add weight decay 1e-4", "Label smoothing"]
+        "rationale": "Exploration is exhausted: adaptive_3sigma reliably passes the FAR gate, percentile_99 is dangerous, and derivatives don't help. STOP exploring — EXPLOIT the winning family (adaptive_3sigma + residuals_only) and sweep window length + model to push F1 past 0.667.",
+        "next_hypotheses": ["isolation_forest + adaptive_3sigma + residuals_only", "sweep window 30/62/75/100", "lock global normalization"]
       }
     },
     {
-      "result": { "commit": "e5f6a7b", "value": 0.831000, "memory_gb": 10.0, "status": "keep", "description": "add dropout 0.1 + weight decay 1e-4 (regularization pivot)" },
+      "result": { "commit": "50697a79", "value": 0.800, "memory_gb": 0.0, "status": "keep", "description": "Round 4 WINNER — window=30, residuals_only, isolation_forest, adaptive_3sigma, global (F1 0.800, FAR 0.00/hr, lat 1220ms)" },
       "directive": {
-        "pass": 5, "verdict": "CONTINUE",
+        "pass": 5, "verdict": "COMMIT",
         "checks": {
-          "plateau": { "ok": true, "evidence": "Pivot broke the plateau: 0.880 -> 0.831, the biggest single gain since the LR change." },
-          "crash": { "ok": true, "evidence": "Crash rate 0." },
-          "stagnation": { "ok": true, "evidence": "New approach family; no repeats." }
+          "false_alarm_gate": { "ok": true, "evidence": "FAR 0.00/hr — comfortably under the 2.0/hr limit." },
+          "plateau": { "ok": true, "evidence": "Broke the plateau: 0.667 -> 0.800 by exploiting adaptive_3sigma + residuals_only + isolation_forest with a short window." },
+          "stagnation": { "ok": true, "evidence": "Clear winner identified; further sweeping shows diminishing returns." }
         },
-        "rationale": "The regularization pivot paid off (0.880 -> 0.831) — exactly the breakthrough the plateau signal was pointing toward. Continue exploring regularization.",
-        "next_hypotheses": ["Tune dropout to 0.2", "Stronger weight decay"]
+        "rationale": "The EXPLOIT round paid off: F1 jumped 0.667 -> 0.800 with zero false alarms. A short 30-step window wins because fault onset is sharp. This beats the never-firing baseline decisively and satisfies the FAR gate — COMMIT this configuration as the delivered detector.",
+        "next_hypotheses": ["Fault-type-specific detector (MoE) for the missed aileron-pair failures"]
       }
     }
-  ]
+  ],
+  "summary": {
+    "verdict": "COMMIT",
+    "headline": "Delivered an early-warning fault detector: F1 0.000 → 0.800, zero false alarms.",
+    "experiments_run": 24,
+    "passed_gate": 23,
+    "failed_gate": 1,
+    "best": {
+      "event_level_F1": 0.800,
+      "false_alarm_rate_per_hr": 0.00,
+      "detection_latency_ms": 1220,
+      "config": {
+        "window_length": 30,
+        "feature_set": "residuals_only",
+        "model_type": "isolation_forest",
+        "normalization": "global",
+        "threshold_method": "adaptive_3sigma"
+      }
+    },
+    "baseline": { "event_level_F1": 0.000, "note": "default fixed-threshold detector never fired" },
+    "learned": [
+      "Adaptive threshold is essential — the default fixed threshold never fires (F1=0.000); adaptive_3sigma calibrates to the data and reaches F1=0.800.",
+      "Optimal window is short (30 steps): fault onset is sharp, so long averaging hurts.",
+      "percentile_99 is dangerous — it blew the false-alarm gate (273/hr); adaptive_3sigma stays at 0.00/hr."
+    ],
+    "honest_limit": "left_aileron + right_aileron simultaneous failure: recall 0.00 (missed entirely). Next step: a fault-type-specific (mixture-of-experts) detector.",
+    "replay": {
+      "flight": "carbonZ_2018-09-11-11-56-30_engine_failure",
+      "fault_type": "engine_failure",
+      "fault_onset_s": 103.57,
+      "detected_at_s": 104.01,
+      "latency_ms": 437,
+      "anomaly_score": 0.5624,
+      "threshold": 0.5555,
+      "note": "No human tuned this detector — the research agent found this configuration. On a held-out fault flight it caught the engine failure 437ms after onset."
+    }
+  }
 }
