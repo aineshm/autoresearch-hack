@@ -1,0 +1,1 @@
+{ "pass": 2, "candidates": [ { "id": "c1", "hypothesis": "tune", "config": {}, "metrics": { "train": 0.86, "val": 0.812, "held_out": 0.801 }, "status": "ok", "error": null, "artifacts": [], "run_id": "rd-p2" } ] }

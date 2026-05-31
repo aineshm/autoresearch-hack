@@ -1,0 +1,72 @@
+{
+  "_comment": "Curated demo run for instant replay. An improving-then-PIVOT arc: the metric improves for a few generations, the Research Judge keeps CONTINUE-ing, then detects a plateau and PIVOTs to a new approach that breaks through. No real compute — the replay writer appends these generations one at a time so the monitor shows it evolving live.",
+  "metric": "val_bpb",
+  "program_md": "# Autoresearch run\n\n## Goal\nMinimize val_bpb by tuning the optimizer and regularization.\n\n## Experiment contract\nEdit `train.py`. Run with `python train.py`. The metric is `val_bpb` (lower is better).\n",
+  "generations": [
+    {
+      "result": { "commit": "a1b2c3d", "value": 1.000000, "memory_gb": 10.0, "status": "keep", "description": "baseline" },
+      "directive": {
+        "pass": 1, "verdict": "CONTINUE",
+        "checks": {
+          "plateau": { "ok": true, "evidence": "Only the baseline exists; no plateau possible yet." },
+          "crash": { "ok": true, "evidence": "Crash rate 0." },
+          "stagnation": { "ok": true, "evidence": "No repeated failures in the ledger." }
+        },
+        "rationale": "Baseline established at 1.000. Direction is aligned with the goal; proceed to tune the optimizer.",
+        "next_hypotheses": ["Lower the learning rate to 0.04", "Add a cosine schedule"]
+      }
+    },
+    {
+      "result": { "commit": "b2c3d4e", "value": 0.910000, "memory_gb": 10.0, "status": "keep", "description": "lower learning rate to 0.04" },
+      "directive": {
+        "pass": 2, "verdict": "CONTINUE",
+        "checks": {
+          "plateau": { "ok": true, "evidence": "Improved 1.000 -> 0.910; clearly still descending." },
+          "crash": { "ok": true, "evidence": "Crash rate 0." },
+          "stagnation": { "ok": true, "evidence": "Fresh improvement, no repeats." }
+        },
+        "rationale": "The lower LR helped (1.000 -> 0.910). The optimizer direction is paying off; keep pushing on the schedule.",
+        "next_hypotheses": ["Add a cosine LR schedule", "Warmup for the first 5% of steps"]
+      }
+    },
+    {
+      "result": { "commit": "c3d4e5f", "value": 0.882000, "memory_gb": 10.0, "status": "keep", "description": "add cosine LR schedule + warmup" },
+      "directive": {
+        "pass": 3, "verdict": "CONTINUE",
+        "checks": {
+          "plateau": { "ok": true, "evidence": "0.910 -> 0.882; still improving, gains shrinking." },
+          "crash": { "ok": true, "evidence": "Crash rate 0." },
+          "stagnation": { "ok": true, "evidence": "No repeated approaches." }
+        },
+        "rationale": "Cosine schedule gave a smaller but real gain (0.910 -> 0.882). The optimizer lever is nearly exhausted; one more before considering a pivot.",
+        "next_hypotheses": ["Increase batch size", "Tune weight decay"]
+      }
+    },
+    {
+      "result": { "commit": "d4e5f6a", "value": 0.880000, "memory_gb": 10.0, "status": "discard", "description": "increase batch size to 256" },
+      "directive": {
+        "pass": 4, "verdict": "PIVOT",
+        "checks": {
+          "plateau": { "ok": false, "evidence": "0.882 -> 0.880 over the last two generations: improvement < 0.005. The optimizer path has plateaued." },
+          "crash": { "ok": true, "evidence": "Crash rate 0." },
+          "stagnation": { "ok": true, "evidence": "No repeated failures yet, but optimizer tweaks are returning diminishing gains." }
+        },
+        "rationale": "Optimizer tuning has plateaued (0.882 -> 0.880). Pivot away from optimizer knobs toward regularization, which the plan flagged as high-value and is so far unexplored.",
+        "next_hypotheses": ["Add dropout 0.1", "Add weight decay 1e-4", "Label smoothing"]
+      }
+    },
+    {
+      "result": { "commit": "e5f6a7b", "value": 0.831000, "memory_gb": 10.0, "status": "keep", "description": "add dropout 0.1 + weight decay 1e-4 (regularization pivot)" },
+      "directive": {
+        "pass": 5, "verdict": "CONTINUE",
+        "checks": {
+          "plateau": { "ok": true, "evidence": "Pivot broke the plateau: 0.880 -> 0.831, the biggest single gain since the LR change." },
+          "crash": { "ok": true, "evidence": "Crash rate 0." },
+          "stagnation": { "ok": true, "evidence": "New approach family; no repeats." }
+        },
+        "rationale": "The regularization pivot paid off (0.880 -> 0.831) — exactly the breakthrough the plateau signal was pointing toward. Continue exploring regularization.",
+        "next_hypotheses": ["Tune dropout to 0.2", "Stronger weight decay"]
+      }
+    }
+  ]
+}

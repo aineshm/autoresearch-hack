@@ -1,0 +1,8 @@
+{
+  "pass": 1,
+  "candidates": [
+    { "id": "candidate-1", "hypothesis": "deep GBDT", "config": { "model": "xgboost", "max_depth": 12 },
+      "metrics": { "train": 0.99, "val": 0.88, "held_out": 0.82 },
+      "status": "ok", "error": null, "artifacts": ["models/c1.pkl"], "run_id": "rd-001" }
+  ]
+}

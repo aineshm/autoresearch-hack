@@ -6,6 +6,7 @@ import BriefCard from '../Brief/BriefCard';
 import PlanCard from '../Plan/PlanCard';
 import ResearchPanel from '../Plan/ResearchPanel';
 import RunningPanel from '../Plan/RunningPanel';
+import SwarmMonitor from '../SwarmMonitor/SwarmMonitor';
 import Upload from '../Project/Upload';
 import { api, getToken } from '../../api';
 import './Chat.css';
@@ -208,7 +209,9 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
     }
   }
 
-  function runPlan(idx) {
+  async function runPlan(idx) {
+    const plan = active?.messages?.[idx]?.plan;
+    // Optimistically mark the plan launched + show the running placeholder.
     patchActive((c) => ({
       ...c,
       phase: 'launched',
@@ -216,6 +219,26 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
         .map((m, i) => (i === idx ? { ...m, launched: true } : m))
         .concat([{ role: 'assistant', kind: 'running' }]),
     }));
+    // Launch the real research swarm; swap the placeholder for the live monitor.
+    try {
+      const res = await fetch('/api/run/launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error(`launch failed (${res.status})`);
+      const { runId, cached } = await res.json();
+      showToast(cached, cached ? 'Cache · replaying run' : 'Live · running swarm');
+      patchActive((c) => ({
+        ...c,
+        messages: c.messages.map((m) =>
+          m.kind === 'running' ? { role: 'assistant', kind: 'monitor', runId } : m,
+        ),
+      }));
+    } catch (err) {
+      // Leave the running placeholder in place; the swarm couldn't be launched.
+      console.error('run launch error:', err);
+    }
   }
 
   function onKeyDown(e) {
@@ -335,6 +358,14 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
                     <div key={i} className="msg msg--assistant">
                       <div className="msg-role">AutoLab</div>
                       <RunningPanel />
+                    </div>
+                  );
+                }
+                if (m.kind === 'monitor') {
+                  return (
+                    <div key={i} className="msg msg--assistant">
+                      <div className="msg-role">AutoLab</div>
+                      <SwarmMonitor runId={m.runId} />
                     </div>
                   );
                 }

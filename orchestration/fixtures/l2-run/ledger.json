@@ -1,0 +1,5 @@
+{ "similarity_threshold": 0.8, "attempts": [
+  { "attempt_id": "a1", "packet_id": "exp1", "generation": 1, "approach": "increase LR to 0.04", "outcome": "success", "error_class": "", "detail": "metric=0.990000", "signature": "s1", "tokens": ["lr","04"], "timestamp": "2026-05-30T22:37:31Z" },
+  { "attempt_id": "a2", "packet_id": "exp2", "generation": 2, "approach": "switch to GeLU", "outcome": "failure", "error_class": "", "detail": "metric=1.020000", "signature": "s2", "tokens": ["gelu"], "timestamp": "2026-05-30T22:38:00Z" },
+  { "attempt_id": "a3", "packet_id": "exp3", "generation": 3, "approach": "double model width", "outcome": "failure", "error_class": "OOM", "detail": "crash", "signature": "s3", "tokens": ["double","width"], "timestamp": "2026-05-30T22:39:00Z" }
+]}
