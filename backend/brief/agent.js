@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { BRIEF_SYSTEM, buildUserPrompt } from './prompts.js';
 import { validateStep, fallbackStep } from './schema.js';
 import { ALFA_PACK } from './packs/alfa.js';
+import * as cache from '../lib/cache.js';
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
@@ -61,33 +62,42 @@ export function briefReasoning() {
  */
 export async function nextStep({ goal, dataset = null, transcript = [], model } = {}) {
   if (!goal || !String(goal).trim()) throw new Error('goal is required');
-  if (!openai) return sanitizeStep(fallbackStep({ goal, transcript }));
 
   // Attach data facts ONLY when we genuinely have them: an explicitly-passed dataset, or the
   // ALFA pack when the conversation is actually about that UAV scenario. Otherwise run general
   // (no fabricated data — the brief asks the user what data they have).
   const ds = dataset || detectPack(goal, transcript)?.data_facts || null;
 
-  const completion = await openai.chat.completions.create({
-    model: model || BRIEF_MODEL,
-    reasoning_effort: BRIEF_REASONING_EFFORT,
-    messages: [
-      { role: 'system', content: BRIEF_SYSTEM },
-      { role: 'user', content: buildUserPrompt({ goal, dataset: ds, transcript, maxQuestions: MAX_QUESTIONS }) },
-    ],
-    response_format: { type: 'json_object' },
-  });
+  // Record/replay: same inputs -> same recorded output (deterministic demo).
+  const ck = cache.key('brief.next', { goal, transcript, dataset: ds });
+  const hit = cache.get(ck);
+  if (hit) return { ...hit, cached: true }; // replay (flag is transient, not stored)
 
-  let parsed = null;
-  try {
-    parsed = JSON.parse(completion.choices?.[0]?.message?.content || '{}');
-  } catch {
-    /* fall through to fallback */
+  let result;
+  if (!openai) {
+    result = sanitizeStep(fallbackStep({ goal, transcript }));
+  } else {
+    const completion = await openai.chat.completions.create({
+      model: model || BRIEF_MODEL,
+      reasoning_effort: BRIEF_REASONING_EFFORT,
+      messages: [
+        { role: 'system', content: BRIEF_SYSTEM },
+        { role: 'user', content: buildUserPrompt({ goal, dataset: ds, transcript, maxQuestions: MAX_QUESTIONS }) },
+      ],
+      response_format: { type: 'json_object' },
+    });
+    let parsed = null;
+    try { parsed = JSON.parse(completion.choices?.[0]?.message?.content || '{}'); } catch { /* fallback */ }
+    const step = validateStep(parsed);
+    if (!step) {
+      result = sanitizeStep(fallbackStep({ goal, transcript })); // never break the interview on a bad shape
+    } else {
+      if (step.action === 'finalize') normalizeBrief(step.brief, ds);
+      result = sanitizeStep(step);
+    }
   }
-  const step = validateStep(parsed);
-  if (!step) return sanitizeStep(fallbackStep({ goal, transcript })); // never break the interview on a bad shape
-  if (step.action === 'finalize') normalizeBrief(step.brief, ds);
-  return sanitizeStep(step);
+  cache.set(ck, result);
+  return { ...result, cached: false }; // generated live
 }
 
 // Guarantee the brief always carries the full PRD shape, so the UI + Planner never see missing

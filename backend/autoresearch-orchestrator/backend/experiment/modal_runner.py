@@ -98,6 +98,11 @@ class ModalExperimentRunner:
                 "Install it with: pip install modal"
             ) from exc
 
+        from backend.experiment.dataset_volume import (  # noqa: PLC0415
+            DATASET_MOUNT_PATH,
+            mount_handle,
+        )
+
         app = modal.App.lookup(self.cfg.modal_app_name, create_if_missing=True)
         image = (
             modal.Image.debian_slim(python_version=self.cfg.modal_python_version)
@@ -106,11 +111,15 @@ class ModalExperimentRunner:
         # Give the sandbox a little headroom beyond the per-exec timeout so the
         # sandbox isn't reaped before the exec's own timeout fires.
         sandbox_timeout = timeout + 60
+        # Mount the shared dataset volume READ-ONLY at a fixed path so every
+        # fresh sandbox can read it without bundling it into the image. The
+        # volume is hosted once via dataset_volume.populate; sandboxes only read.
         sandbox = modal.Sandbox.create(
             app=app,
             image=image,
             timeout=sandbox_timeout,
             workdir="/repo",
+            volumes={DATASET_MOUNT_PATH: mount_handle()},
         )
         sandbox_id = getattr(sandbox, "object_id", "?")
         print(f"[modal] fresh sandbox {sandbox_id} created for experiment "

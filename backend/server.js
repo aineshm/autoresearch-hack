@@ -9,6 +9,7 @@ import plannerRouter from './planner/route.js';
 import projectsRouter from './projects/route.js';
 import monitorRouter from './monitor/route.js';
 import runRouter from './run/route.js';
+import * as cache from './lib/cache.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
@@ -182,6 +183,10 @@ app.use('/api/projects', authRequired, projectsRouter);
 // Monitor: live status of a running autoresearch swarm (no auth gate for demo).
 app.use('/api/monitor', monitorRouter);
 app.use('/api/run', runRouter);
+
+// Record/replay cache controls. Clear before a fresh recording run; stats to inspect.
+app.get('/api/cache/stats', keyOrAuth, (_req, res) => res.json(cache.stats()));
+app.post('/api/cache/clear', keyOrAuth, (_req, res) => { cache.clearCache(); res.json({ cleared: true }); });
 
 app.listen(PORT, () => {
   console.log(`AutoLab backend listening on http://localhost:${PORT}`);

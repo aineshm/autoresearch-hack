@@ -76,6 +76,13 @@ def _make_fake_modal(
     fake_modal.Sandbox = MagicMock(name="modal.Sandbox")  # type: ignore[attr-defined]
     fake_modal.Sandbox.create.return_value = sandbox  # type: ignore[attr-defined]
 
+    # Volume: dataset_volume.py builds a module-level volume and the runner calls
+    # mount_handle() -> Volume.from_name(...).read_only(). Chain returns mocks.
+    fake_modal.Volume = MagicMock(name="modal.Volume")  # type: ignore[attr-defined]
+    fake_modal.Volume.from_name.return_value.read_only.return_value = MagicMock(
+        name="ro-volume-handle"
+    )
+
     # modal.exception sub-module with the timeout classes _exec_in_sandbox catches
     exc_mod = types.ModuleType("modal.exception")
 

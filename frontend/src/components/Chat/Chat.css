@@ -161,6 +161,38 @@
 .chat-empty-upload { margin-top: 24px; width: 100%; }
 .chat-empty-hint { margin-top: 10px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.4); }
 
+/* cache/live toast */
+.chat-toast {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #fafafa;
+  background: rgba(18, 18, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  animation: toast-in 0.28s var(--ease-out-quint) both;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.chat-toast-dot { width: 8px; height: 8px; border-radius: 50%; }
+.chat-toast--live { border-color: rgba(143, 224, 160, 0.4); }
+.chat-toast--live .chat-toast-dot { background: #8fe0a0; box-shadow: 0 0 8px rgba(143, 224, 160, 0.65); }
+.chat-toast--cache { border-color: rgba(169, 184, 255, 0.45); }
+.chat-toast--cache .chat-toast-dot { background: #a9b8ff; box-shadow: 0 0 8px rgba(169, 184, 255, 0.65); }
+
 /* input */
 .chat-input-wrap {
   position: relative;

@@ -28,6 +28,8 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [planStage, setPlanStage] = useState(null);
+  const [toast, setToast] = useState(null); // { text, kind: 'cache' | 'live' }
+  const toastTimer = useRef(null);
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('autolab_sidebar_collapsed') === '1'
   );
@@ -65,6 +67,13 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
     setConversations((convs) => convs.map((c) => (c.id === id ? updater(c) : c)));
   }
 
+  // Small toast showing whether output came from the cache (replay) or was generated live.
+  function showToast(cached, text) {
+    setToast({ kind: cached ? 'cache' : 'live', text });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2800);
+  }
+
   function autosize() {
     const ta = taRef.current;
     if (!ta) return;
@@ -86,6 +95,7 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
     try {
       const dataset = project?.hasData ? project.dataFacts : undefined;
       const step = await api.briefNext({ goal, transcript, dataset }, getToken());
+      showToast(step.cached, step.cached ? 'Cache · replaying' : 'Live · generating');
       patchConv(convId, (c) => {
         if (step.action === 'finalize') {
           return { ...c, phase: 'confirming', messages: [...c.messages, { role: 'assistant', kind: 'brief', brief: step.brief }] };
@@ -168,7 +178,9 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
       }));
 
     const onEvent = (evt) => {
-      if (evt.type === 'stage') {
+      if (evt.type === 'meta') {
+        showToast(evt.cached, evt.cached ? 'Cache · replaying research' : 'Live · researching');
+      } else if (evt.type === 'stage') {
         updateResearch((r) => ({ ...r, stage: evt.label }));
       } else if (evt.type === 'queries') {
         updateResearch((r) => ({ ...r, angles: evt.queries.map((q) => ({ angle: q.angle, query: q.query, status: 'pending', sources: [] })) }));
@@ -273,6 +285,12 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
       />
 
       <main className="chat-main">
+        {toast && (
+          <div className={`chat-toast chat-toast--${toast.kind}`}>
+            <span className="chat-toast-dot" />
+            {toast.text}
+          </div>
+        )}
         <div className="chat-body" ref={scrollRef}>
           {empty ? (
             <div className="chat-empty">
