@@ -197,7 +197,9 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
     }
   }
 
-  function runPlan(idx) {
+  async function runPlan(idx) {
+    const plan = active?.messages?.[idx]?.plan;
+    // Optimistically mark the plan launched + show the running placeholder.
     patchActive((c) => ({
       ...c,
       phase: 'launched',
@@ -205,6 +207,25 @@ export default function Chat({ user, project, onUpdateProject, onBack, onLogout 
         .map((m, i) => (i === idx ? { ...m, launched: true } : m))
         .concat([{ role: 'assistant', kind: 'running' }]),
     }));
+    // Launch the real research swarm; swap the placeholder for the live monitor.
+    try {
+      const res = await fetch('/api/run/launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) throw new Error(`launch failed (${res.status})`);
+      const { runId } = await res.json();
+      patchActive((c) => ({
+        ...c,
+        messages: c.messages.map((m) =>
+          m.kind === 'running' ? { role: 'assistant', kind: 'monitor', runId } : m,
+        ),
+      }));
+    } catch (err) {
+      // Leave the running placeholder in place; the swarm couldn't be launched.
+      console.error('run launch error:', err);
+    }
   }
 
   function onKeyDown(e) {

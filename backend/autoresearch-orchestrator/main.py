@@ -45,6 +45,8 @@ async def async_main() -> None:
     args = parse_args()
 
     if args.experiment_repo:
+        import os
+
         from agents.experiment_swarm import ExperimentSwarm
         from config import settings
 
@@ -53,7 +55,34 @@ async def async_main() -> None:
             from backend.experiment.modal_runner import ModalExperimentRunner
             runner = ModalExperimentRunner()
 
-        swarm = ExperimentSwarm(runner=runner)
+        # Optionally steer the loop with the L3 Research Judge: it analyses each
+        # generation's results and emits a directive the swarm acts on. The default
+        # agent experimenter is wrapped as the `inner` proposer so real ideas still flow.
+        idea_proposer = None
+        if os.getenv("USE_L3_PROPOSER", "").lower() in ("1", "true", "yes"):
+            from agents.l3_proposer import make_l3_proposer
+
+            repo = args.experiment_repo
+
+            def _latest_pass() -> int:
+                tsv = repo / "results.tsv"
+                if not tsv.exists():
+                    return 0
+                lines = [ln for ln in tsv.read_text().splitlines() if ln.strip()]
+                return max(0, len(lines) - 1)
+
+            base_swarm = ExperimentSwarm(runner=runner)
+
+            async def _inner(**kwargs):
+                # Reuse the swarm's own agent experimenter as the idea source.
+                return await base_swarm._agent_propose_idea(
+                    "run", kwargs["spec"], kwargs["current_code"],
+                    kwargs["best"], kwargs["ledger"], kwargs["results_tail"],
+                )
+
+            idea_proposer = make_l3_proposer(repo, inner=_inner, latest_pass=_latest_pass)
+
+        swarm = ExperimentSwarm(runner=runner, idea_proposer=idea_proposer)
         result = await swarm.run(args.experiment_repo, max_experiments=args.max_experiments)
         print(
             f"[EXPERIMENT] best={result.best_value} kept={result.kept}/{result.experiments_run} "

@@ -8,6 +8,7 @@ import briefRouter from './brief/route.js';
 import plannerRouter from './planner/route.js';
 import projectsRouter from './projects/route.js';
 import monitorRouter from './monitor/route.js';
+import runRouter from './run/route.js';
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autolab-dev-secret-change-me';
@@ -180,6 +181,7 @@ app.use('/api/planner', keyOrAuth, plannerRouter);
 app.use('/api/projects', authRequired, projectsRouter);
 // Monitor: live status of a running autoresearch swarm (no auth gate for demo).
 app.use('/api/monitor', monitorRouter);
+app.use('/api/run', runRouter);
 
 app.listen(PORT, () => {
   console.log(`AutoLab backend listening on http://localhost:${PORT}`);
